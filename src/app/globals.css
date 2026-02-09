@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #fff9f1;
-  --ink: #1f2937;
-  --cocoa: #6b4e3d;
-  --sun: #ffd68a;
-  --mint: #b9f2e2;
-  --peach: #ffc6b3;
-  --sky: #cfe7ff;
-  --lavender: #e8dcff;
-  --accent: #ff7a59;
-  --border-soft: #e7d7c9;
-  --shadow: 0 18px 40px -30px rgba(57, 42, 34, 0.4);
+  --paper: #f8f4ee;
+  --ink: #2f2a25;
+  --cocoa: #7a5a47;
+  --sun: #ffe2ad;
+  --mint: #c8f0e4;
+  --peach: #ffd6c8;
+  --sky: #d8ebff;
+  --lavender: #efe6ff;
+  --accent: #e56a4d;
+  --border-soft: #eadfd4;
+  --shadow: 0 18px 40px -30px rgba(54, 41, 31, 0.32);
 }
 
 @theme inline {
@@ -21,9 +21,9 @@
 
 body {
   background:
-    radial-gradient(1200px 600px at 10% -10%, var(--mint), transparent 70%),
-    radial-gradient(1000px 500px at 90% 0%, var(--sky), transparent 65%),
-    radial-gradient(900px 480px at 20% 100%, var(--peach), transparent 60%),
+    radial-gradient(1200px 600px at 10% -10%, var(--mint), transparent 75%),
+    radial-gradient(1000px 520px at 90% 0%, var(--sky), transparent 70%),
+    radial-gradient(900px 480px at 20% 100%, var(--peach), transparent 65%),
     var(--paper);
   color: var(--ink);
   font-family: var(--font-body), sans-serif;
@@ -39,6 +39,6 @@ body {
 }
 
 ::selection {
-  background: var(--accent);
-  color: #fff;
+  background: #f2b9a8;
+  color: #2c241f;
 }
