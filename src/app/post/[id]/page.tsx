@@ -1,4 +1,4 @@
-export const runtime = "edge";
+export const runtime = 'edge';
 
 type PostDetailProps = {
   params: { id: string };
