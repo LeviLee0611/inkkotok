@@ -1,127 +1,87 @@
-# Firebase Auth + Data Model Draft
+# Auth.js + Supabase Data Model
 
 ## Goals
 - Anyone can read posts and comments without logging in.
-- Writing posts/comments requires login (Google or Microsoft).
-- Users stay anonymous to the community. Displayed nickname is generated and stored in user profile.
+- Writing posts/comments requires login (Google, Microsoft, Naver, Kakao).
+- Users remain anonymous; only a generated nickname is shown.
 
 ## Auth Providers
 - Google
-- Microsoft (Azure AD / Microsoft Account)
+- Microsoft (Azure AD)
+- Naver
+- Kakao
 
 ## Auth Flow (MVP)
-1. User clicks "로그인" in `/auth`.
-2. Firebase Auth OAuth popup with Google or Microsoft.
-3. On first login, create user profile doc with:
-   - `displayName` generated (not real name)
-   - `createdAt`, `lastSeenAt`
-   - `provider` info
-4. Client stores `uid` from Firebase Auth and uses it for write actions.
+1. User clicks "Login" on `/auth`.
+2. OAuth flow via Auth.js (NextAuth).
+3. On first login, create a profile record in Supabase:
+   - `display_name` generated
+   - `created_at`, `last_seen_at`
+   - `providers` list
+4. Client uses session `user.id` for writes.
 
-## Firestore Collections
+## Supabase Tables
 
-### `users/{uid}`
+### `profiles`
 Anonymous user profile.
-- `displayName` (string)
-- `createdAt` (timestamp)
-- `lastSeenAt` (timestamp)
-- `providers` (array of string)
-- `status` (string: `active` | `suspended`)
+- `id` (text, primary key) - auth subject
+- `display_name` (text)
+- `email` (text, nullable)
+- `image_url` (text, nullable)
+- `providers` (text[])
+- `status` (text: `active` | `suspended`)
+- `created_at` (timestamptz)
+- `last_seen_at` (timestamptz)
 
-### `lounges/{loungeId}`
-Category and generation-specific lounges.
-- `title` (string)
-- `type` (string: `generation` | `topic`)
-- `order` (number)
-- `description` (string)
-- `createdAt` (timestamp)
+### `lounges`
+- `id` (uuid, primary key)
+- `title` (text)
+- `type` (text: `generation` | `topic`)
+- `order` (int)
+- `description` (text)
+- `created_at` (timestamptz)
 
-### `posts/{postId}`
-Community posts.
-- `title` (string)
-- `body` (string)
-- `loungeId` (string)
-- `authorId` (string = uid)
-- `authorDisplayName` (string)
-- `status` (string: `active` | `hidden` | `removed`)
-- `createdAt` (timestamp)
-- `updatedAt` (timestamp)
-- `likeCount` (number)
-- `commentCount` (number)
-- `reportCount` (number)
+### `posts`
+- `id` (uuid, primary key)
+- `title` (text)
+- `body` (text)
+- `lounge_id` (uuid, references `lounges.id`)
+- `author_id` (text, references `profiles.id`)
+- `author_display_name` (text)
+- `status` (text: `active` | `hidden` | `removed`)
+- `created_at` (timestamptz)
+- `updated_at` (timestamptz)
+- `like_count` (int)
+- `comment_count` (int)
+- `report_count` (int)
 
-### `posts/{postId}/comments/{commentId}`
-Comments in each post.
-- `body` (string)
-- `authorId` (string = uid)
-- `authorDisplayName` (string)
-- `status` (string: `active` | `hidden` | `removed`)
-- `createdAt` (timestamp)
-- `updatedAt` (timestamp)
-- `reportCount` (number)
+### `comments`
+- `id` (uuid, primary key)
+- `post_id` (uuid, references `posts.id`)
+- `body` (text)
+- `author_id` (text, references `profiles.id`)
+- `author_display_name` (text)
+- `status` (text: `active` | `hidden` | `removed`)
+- `created_at` (timestamptz)
+- `updated_at` (timestamptz)
+- `report_count` (int)
 
-### `reports/{reportId}`
-Content reports (posts or comments).
-- `targetType` (string: `post` | `comment`)
-- `targetPath` (string)
-- `reason` (string)
-- `reporterId` (string = uid)
-- `createdAt` (timestamp)
+### `reports`
+- `id` (uuid, primary key)
+- `target_type` (text: `post` | `comment`)
+- `target_id` (uuid)
+- `reason` (text)
+- `reporter_id` (text, references `profiles.id`)
+- `created_at` (timestamptz)
 
-### `moderation/{modId}`
-Moderator actions (optional for MVP).
-- `targetType` (string)
-- `targetPath` (string)
-- `action` (string: `hide` | `remove` | `restore`)
-- `actorId` (string)
-- `createdAt` (timestamp)
-
-## Security Rules (Draft)
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    function isSignedIn() { return request.auth != null; }
-    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
-
-    match /users/{uid} {
-      allow read: if false;
-      allow create: if isOwner(uid);
-      allow update: if isOwner(uid);
-    }
-
-    match /lounges/{loungeId} {
-      allow read: if true;
-      allow write: if false;
-    }
-
-    match /posts/{postId} {
-      allow read: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if false;
-
-      match /comments/{commentId} {
-        allow read: if true;
-        allow create: if isSignedIn();
-        allow update, delete: if false;
-      }
-    }
-
-    match /reports/{reportId} {
-      allow read: if false;
-      allow create: if isSignedIn();
-      allow update, delete: if false;
-    }
-  }
-}
-```
-
-## Indexes (When Needed)
-- `posts` by `loungeId` + `createdAt` desc
-- `posts` by `createdAt` desc
-- `posts/{postId}/comments` by `createdAt` asc
+### `moderation`
+- `id` (uuid, primary key)
+- `target_type` (text)
+- `target_id` (uuid)
+- `action` (text: `hide` | `remove` | `restore`)
+- `actor_id` (text)
+- `created_at` (timestamptz)
 
 ## Notes
-- `authorDisplayName` is stored redundantly for fast read; update via Cloud Function if nickname changes.
-- `status` changes handled by server/admin (Cloud Functions or Admin SDK).
-- PII not stored in public documents.
+- `author_display_name` is stored redundantly for fast reads.
+- Use RLS to prevent client writes to protected fields.
