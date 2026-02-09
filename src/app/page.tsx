@@ -9,7 +9,7 @@ export default function Home() {
             </div>
             <div className="leading-tight">
               <p className="text-sm font-semibold text-[var(--cocoa)]">잉크톡</p>
-              <p className="text-xs text-zinc-500">부부 익명 커뮤니티</p>
+              <p className="text-xs text-zinc-500">부부 커뮤니티</p>
             </div>
           </div>
           <div className="hidden items-center gap-4 text-sm font-medium text-zinc-600 md:flex">
