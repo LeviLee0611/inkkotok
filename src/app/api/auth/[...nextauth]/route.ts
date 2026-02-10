@@ -1,4 +1,4 @@
-import { Auth } from "@auth/core";
+import { Auth, type AuthConfig } from "@auth/core";
 import AzureAD from "@auth/core/providers/azure-ad";
 import Google from "@auth/core/providers/google";
 import Kakao from "@auth/core/providers/kakao";
@@ -28,7 +28,7 @@ const providers = [
   }),
 ];
 
-const authConfig = {
+const authConfig: AuthConfig = {
   providers,
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   trustHost: process.env.AUTH_TRUST_HOST === "true",
