@@ -15,9 +15,13 @@ const notoSerif = Noto_Serif_KR({
 });
 
 export const metadata: Metadata = {
-  title: "잉꼬톡 | 부부 커뮤니티",
+  title: "잉꼬부부 커뮤니티: 잉꼬톡",
   description:
-    "세대와 상황이 다른 부부들이 고민과 꿀팁을 나누는 따뜻한 커뮤니티.",
+    "잉꼬부부가 고민과 꿀팁을 나누는 따뜻한 커뮤니티, 잉꼬톡.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
