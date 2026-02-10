@@ -9,7 +9,7 @@ export default function WritePage() {
           익명으로 고민을 나눠보세요
         </h1>
         <p className="text-sm text-zinc-600">
-          Google 또는 Microsoft로 로그인한 뒤 글을 작성할 수 있어요.
+          Google로 로그인한 뒤 글을 작성할 수 있어요.
         </p>
         <div className="flex flex-wrap gap-2">
           <a

@@ -1,8 +1,5 @@
 import { Auth, type AuthConfig } from "@auth/core";
-import AzureAD from "@auth/core/providers/azure-ad";
 import Google from "@auth/core/providers/google";
-import Kakao from "@auth/core/providers/kakao";
-import Naver from "@auth/core/providers/naver";
 
 import { upsertProfile } from "@/lib/profile";
 
@@ -12,19 +9,6 @@ const providers = [
   Google({
     clientId: process.env.GOOGLE_CLIENT_ID ?? "",
     clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-  }),
-  AzureAD({
-    clientId: process.env.AZURE_AD_CLIENT_ID ?? "",
-    clientSecret: process.env.AZURE_AD_CLIENT_SECRET ?? "",
-    tenantId: process.env.AZURE_AD_TENANT_ID ?? "common",
-  }),
-  Naver({
-    clientId: process.env.NAVER_CLIENT_ID ?? "",
-    clientSecret: process.env.NAVER_CLIENT_SECRET ?? "",
-  }),
-  Kakao({
-    clientId: process.env.KAKAO_CLIENT_ID ?? "",
-    clientSecret: process.env.KAKAO_CLIENT_SECRET ?? "",
   }),
 ];
 
