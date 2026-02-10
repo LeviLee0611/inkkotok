@@ -4,11 +4,15 @@ export default function Home() {
       <header className="px-6 pt-8 md:px-12">
         <nav className="mx-auto flex w-full max-w-6xl items-center justify-between rounded-3xl border border-[var(--border-soft)] bg-white/80 px-5 py-4 shadow-[var(--shadow)] backdrop-blur">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--sun)] text-lg font-bold text-[var(--cocoa)]">
-              잉
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-[var(--sun)]">
+              <img
+                src="/logo.png"
+                alt="잉꼬톡 로고"
+                className="h-full w-full object-cover"
+              />
             </div>
             <div className="leading-tight">
-              <p className="text-sm font-semibold text-[var(--cocoa)]">잉크톡</p>
+              <p className="text-sm font-semibold text-[var(--cocoa)]">잉꼬톡</p>
               <p className="text-xs text-zinc-500">부부 커뮤니티</p>
             </div>
           </div>
@@ -23,7 +27,7 @@ export default function Home() {
               className="rounded-full px-4 py-2 transition hover:bg-[var(--lavender)]"
               href="#guide"
             >
-              익명 규칙
+              잉꼬 규칙
             </a>
             <a
               className="rounded-full px-4 py-2 transition hover:bg-[var(--lavender)]"
@@ -34,16 +38,10 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-2">
             <a
-              className="rounded-full border border-[var(--border-soft)] px-4 py-2 text-sm font-semibold text-[var(--cocoa)] transition hover:bg-white"
-              href="/feed"
-            >
-              둘러보기
-            </a>
-            <a
               className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:translate-y-[-1px] hover:shadow-lg"
               href="/write"
             >
-              익명 글쓰기
+              고민 나누기
             </a>
           </div>
         </nav>
@@ -53,20 +51,19 @@ export default function Home() {
         <section className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="flex flex-col gap-6 rounded-[36px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-[var(--shadow)] md:p-8">
             <div className="flex flex-wrap gap-2 text-xs font-semibold text-[var(--cocoa)]">
-              <span className="rounded-full bg-[var(--paper)] px-3 py-1">
-                익명 보장
-              </span>
-              <span className="rounded-full bg-[var(--paper)] px-3 py-1">
-                서로 존중
-              </span>
-              <span className="rounded-full bg-[var(--paper)] px-3 py-1">
-                실전 꿀팁
-              </span>
+              {["육아 꿀팁", "일상", "조언", "정보공유"].map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full bg-[var(--paper)] px-3 py-1"
+                >
+                  {tag}
+                </span>
+              ))}
             </div>
             <h1 className="font-display text-4xl font-semibold leading-tight text-[var(--ink)] md:text-5xl">
               한눈에 보는
               <br />
-              부부 익명 커뮤니티
+              부부 커뮤니티
             </h1>
             <p className="max-w-xl text-base leading-7 text-zinc-600">
               읽기는 언제나 자유롭게, 글/댓글은 로그인 후 가능. 세대별·주제별
@@ -77,7 +74,7 @@ export default function Home() {
                 className="rounded-full bg-[var(--ink)] px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:translate-y-[-1px] hover:bg-zinc-800"
                 href="/auth"
               >
-                익명으로 시작하기
+                바로 시작하기
               </a>
               <a
                 className="rounded-full border border-[var(--border-soft)] bg-white px-6 py-3 text-sm font-semibold text-[var(--cocoa)] transition hover:bg-[var(--lavender)]"
@@ -129,7 +126,7 @@ export default function Home() {
             </div>
             <div className="rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-5 shadow-sm">
               <p className="text-xs font-semibold text-[var(--cocoa)]">
-                익명 안전 장치
+                안전 장치
               </p>
               <div className="mt-3 grid gap-2 text-xs text-zinc-600">
                 <div className="rounded-2xl bg-[var(--paper)] px-3 py-2">
@@ -226,7 +223,7 @@ export default function Home() {
                 >
                   {topic}
                   <p className="mt-2 text-xs font-normal text-zinc-500">
-                    익명으로 이야기하기
+                    자유롭게 이야기하기
                   </p>
                 </a>
               ))}
@@ -246,7 +243,7 @@ export default function Home() {
               서로를 보호하는 약속
             </h3>
             <p className="mt-3 text-sm leading-6 text-zinc-600">
-              익명성을 지키면서도 서로를 존중하는 룰을 함께 지켜요.
+              서로를 존중하는 룰을 함께 지켜요.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {[
