@@ -1,11 +1,12 @@
 import { getPostById } from "@/lib/posts";
 
 type RouteContext = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export async function GET(_request: Request, context: RouteContext) {
-  const post = await getPostById(context.params.id);
+  const { id } = await context.params;
+  const post = await getPostById(id);
   if (!post) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }

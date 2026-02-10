@@ -1,15 +1,17 @@
 import { createComment, listComments } from "@/lib/posts";
 
 type RouteContext = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export async function GET(_request: Request, context: RouteContext) {
-  const comments = await listComments(context.params.id, 50);
+  const { id } = await context.params;
+  const comments = await listComments(id, 50);
   return Response.json(comments);
 }
 
 export async function POST(request: Request, context: RouteContext) {
+  const { id } = await context.params;
   const body = await request.json().catch(() => null);
   if (!body) {
     return Response.json({ error: "Invalid JSON body." }, { status: 400 });
@@ -27,11 +29,11 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  const id = await createComment({
-    postId: context.params.id,
+  const commentId = await createComment({
+    postId: id,
     authorId,
     body: content,
   });
 
-  return Response.json({ id }, { status: 201 });
+  return Response.json({ id: commentId }, { status: 201 });
 }
