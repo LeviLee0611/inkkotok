@@ -1,8 +1,8 @@
-import NextAuth, { type NextAuthOptions } from "next-auth";
-import AzureAD from "next-auth/providers/azure-ad";
-import Google from "next-auth/providers/google";
-import Kakao from "next-auth/providers/kakao";
-import Naver from "next-auth/providers/naver";
+import { Auth } from "@auth/core";
+import AzureAD from "@auth/core/providers/azure-ad";
+import Google from "@auth/core/providers/google";
+import Kakao from "@auth/core/providers/kakao";
+import Naver from "@auth/core/providers/naver";
 
 import { upsertProfile } from "@/lib/profile";
 
@@ -28,17 +28,20 @@ const providers = [
   }),
 ];
 
-export const authOptions: NextAuthOptions = {
+const authConfig = {
   providers,
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  trustHost: process.env.AUTH_TRUST_HOST === "true",
   session: { strategy: "jwt" },
   pages: {
     signIn: "/auth",
   },
   callbacks: {
-    async jwt({ token, account, profile }) {
-      if (account?.provider && token.sub) {
+    async jwt({ token, account }) {
+      const subject = token.sub ?? (token as { id?: string }).id;
+      if (account?.provider && subject) {
         const displayName = await upsertProfile({
-          id: token.sub,
+          id: subject,
           email: token.email,
           image: token.picture,
           provider: account.provider,
@@ -49,8 +52,12 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.sub ?? session.user.id;
-        session.user.nickname =
+        const user = session.user as typeof session.user & {
+          id?: string;
+          nickname?: string | null;
+        };
+        user.id = token.sub ?? user.id;
+        user.nickname =
           typeof token.nickname === "string" ? token.nickname : null;
       }
       return session;
@@ -58,6 +65,7 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-const handler = NextAuth(authOptions);
+const handler = (request: Request) => Auth(request, authConfig);
 
-export { handler as GET, handler as POST };
+export const GET = handler;
+export const POST = handler;

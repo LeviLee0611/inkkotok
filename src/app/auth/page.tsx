@@ -1,7 +1,3 @@
-"use client";
-
-import { signIn } from "next-auth/react";
-
 export default function AuthPage() {
   return (
     <div className="min-h-screen px-6 pb-20 pt-10 md:px-12">
@@ -18,46 +14,42 @@ export default function AuthPage() {
       </header>
 
       <main className="mx-auto mt-8 grid w-full max-w-3xl gap-4">
-        <button
+        <a
           className="rounded-3xl border border-[var(--border-soft)] bg-white/90 px-6 py-4 text-left text-sm font-semibold text-[var(--ink)] shadow-sm"
-          onClick={() => signIn("google")}
-          type="button"
+          href="/api/auth/signin/google"
         >
           Google로 로그인
           <p className="mt-1 text-xs text-zinc-500">
             가장 빠른 시작 방법이에요
           </p>
-        </button>
-        <button
+        </a>
+        <a
           className="rounded-3xl border border-[var(--border-soft)] bg-white/90 px-6 py-4 text-left text-sm font-semibold text-[var(--ink)] shadow-sm"
-          onClick={() => signIn("azure-ad")}
-          type="button"
+          href="/api/auth/signin/azure-ad"
         >
           Microsoft로 로그인
           <p className="mt-1 text-xs text-zinc-500">
             회사 계정도 사용 가능해요
           </p>
-        </button>
-        <button
+        </a>
+        <a
           className="rounded-3xl border border-[var(--border-soft)] bg-white/90 px-6 py-4 text-left text-sm font-semibold text-[var(--ink)] shadow-sm"
-          onClick={() => signIn("naver")}
-          type="button"
+          href="/api/auth/signin/naver"
         >
           Naver로 로그인
           <p className="mt-1 text-xs text-zinc-500">
             네이버 계정으로 빠르게 시작해요
           </p>
-        </button>
-        <button
+        </a>
+        <a
           className="rounded-3xl border border-[var(--border-soft)] bg-white/90 px-6 py-4 text-left text-sm font-semibold text-[var(--ink)] shadow-sm"
-          onClick={() => signIn("kakao")}
-          type="button"
+          href="/api/auth/signin/kakao"
         >
           Kakao로 로그인
           <p className="mt-1 text-xs text-zinc-500">
             카카오 계정으로 간편하게 시작해요
           </p>
-        </button>
+        </a>
         <div className="rounded-3xl border border-[var(--border-soft)] bg-[var(--paper)] px-6 py-4 text-xs text-zinc-600">
           로그인하면 익명 닉네임이 자동 생성되고, 활동 기록만 저장돼요. 이메일
           주소나 실명은 커뮤니티에 공개되지 않습니다.
