@@ -1,28 +1,12 @@
-const feed = [
-  {
-    id: "sample-1",
-    title: "말 없이 싸운 뒤의 화해 루틴",
-    lounge: "30-40대 · 관계 회복",
-    excerpt:
-      "서로 말을 안 하고 하루를 보내면 더 마음이 멀어지는 것 같아요. 우리는 짧은 산책과 메모로 시작해요.",
-  },
-  {
-    id: "sample-2",
-    title: "맞벌이 육아 분담표 공유해요",
-    lounge: "신혼 · 육아 루틴",
-    excerpt:
-      "주간 캘린더로 집안일과 육아를 나눴더니 덜 미안해졌어요. 템플릿 공유합니다.",
-  },
-  {
-    id: "sample-3",
-    title: "부부 통장, 어디까지 공개하나요?",
-    lounge: "50+ · 재정/자산",
-    excerpt:
-      "통장 통합이 늘 좋은 건 아니더라고요. 서로의 안전망을 지키는 방법을 고민 중.",
-  },
-];
+import { listPosts } from "@/lib/posts";
 
-export default function FeedPage() {
+function toExcerpt(text: string, limit = 120) {
+  if (text.length <= limit) return text;
+  return `${text.slice(0, limit)}...`;
+}
+
+export default async function FeedPage() {
+  const feed = await listPosts(30);
   return (
     <div className="min-h-screen px-6 pb-20 pt-10 md:px-12">
       <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-[var(--shadow)]">
@@ -72,7 +56,7 @@ export default function FeedPage() {
                 </h2>
               </a>
               <p className="mt-2 text-sm leading-6 text-zinc-600">
-                {post.excerpt}
+                {toExcerpt(post.body)}
               </p>
               <div className="mt-4 flex items-center gap-4 text-xs text-zinc-500">
                 <span>공감 32</span>
