@@ -1,5 +1,7 @@
 import { listPosts, createPost } from "@/lib/posts";
 
+export const runtime = "edge";
+
 export async function GET() {
   const posts = await listPosts(30);
   return Response.json(posts);

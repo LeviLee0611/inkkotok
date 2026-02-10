@@ -1,5 +1,7 @@
 import { createComment, listComments } from "@/lib/posts";
 
+export const runtime = "edge";
+
 type RouteContext = {
   params: Promise<{ id: string }>;
 };

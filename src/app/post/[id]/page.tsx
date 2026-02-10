@@ -1,5 +1,7 @@
 import { getPostById, listComments } from "@/lib/posts";
 
+export const runtime = "edge";
+
 type PostDetailProps = {
   params: { id: string };
 };
