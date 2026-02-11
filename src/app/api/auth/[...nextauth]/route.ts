@@ -81,38 +81,6 @@ const handler = async (request: Request) => {
     url.searchParams.delete("nextauth");
     request = new Request(url, request);
   }
-  if (url.searchParams.get("debug") === "4") {
-    let parsed: { action?: string; providerId?: string; error?: string } = {};
-    try {
-      parsed = parseActionAndProviderId(
-        url.pathname,
-        authConfig.basePath ?? "/auth"
-      );
-    } catch (error) {
-      parsed.error = error instanceof Error ? error.message : String(error);
-    }
-    return new Response(
-      JSON.stringify({
-        originalPath,
-        rewrittenPath: url.pathname,
-        basePath: authConfig.basePath ?? null,
-        nextauth,
-        parsed,
-      }),
-      { status: 200, headers: { "content-type": "application/json" } }
-    );
-  }
-  try {
-    const parsed = parseActionAndProviderId(
-      url.pathname,
-      authConfig.basePath ?? "/auth"
-    );
-    if (parsed.action === "signin" && parsed.providerId && request.method === "GET") {
-      return Response.redirect(new URL("/auth", url));
-    }
-  } catch {
-    // fall through to Auth for error handling
-  }
   if (url.searchParams.get("debug") === "3") {
     const logs: { level: string; message: string }[] = [];
     const logger = {
@@ -148,6 +116,38 @@ const handler = async (request: Request) => {
       }),
       { status: 200, headers: { "content-type": "application/json" } }
     );
+  }
+  if (url.searchParams.get("debug") === "4") {
+    let parsed: { action?: string; providerId?: string; error?: string } = {};
+    try {
+      parsed = parseActionAndProviderId(
+        url.pathname,
+        authConfig.basePath ?? "/auth"
+      );
+    } catch (error) {
+      parsed.error = error instanceof Error ? error.message : String(error);
+    }
+    return new Response(
+      JSON.stringify({
+        originalPath,
+        rewrittenPath: url.pathname,
+        basePath: authConfig.basePath ?? null,
+        nextauth,
+        parsed,
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
+  }
+  try {
+    const parsed = parseActionAndProviderId(
+      url.pathname,
+      authConfig.basePath ?? "/auth"
+    );
+    if (parsed.action === "signin" && parsed.providerId && request.method === "GET") {
+      return Response.redirect(new URL("/auth", url));
+    }
+  } catch {
+    // fall through to Auth for error handling
   }
   if (url.searchParams.get("debug") === "1") {
     let parsed: { action?: string; providerId?: string; error?: string } = {};
