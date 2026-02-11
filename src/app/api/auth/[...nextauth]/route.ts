@@ -13,6 +13,7 @@ const providers = [
 ];
 
 const authConfig: AuthConfig = {
+  basePath: "/api/auth",
   providers,
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   trustHost: process.env.AUTH_TRUST_HOST === "true",
