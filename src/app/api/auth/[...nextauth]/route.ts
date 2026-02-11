@@ -1,20 +1,17 @@
-import { Auth, type AuthConfig } from "@auth/core";
-import Google from "@auth/core/providers/google";
+import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
 
 import { upsertProfile } from "@/lib/profile";
 
 export const runtime = "edge";
 
-const providers = [
-  Google({
-    clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-  }),
-];
-
-const authConfig: AuthConfig = {
-  basePath: "/api/auth",
-  providers,
+const auth = NextAuth({
+  providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    }),
+  ],
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   trustHost: process.env.AUTH_TRUST_HOST === "true",
   session: { strategy: "jwt" },
@@ -42,115 +39,11 @@ const authConfig: AuthConfig = {
           nickname?: string | null;
         };
         user.id = token.sub ?? user.id;
-        user.nickname =
-          typeof token.nickname === "string" ? token.nickname : null;
+        user.nickname = typeof token.nickname === "string" ? token.nickname : null;
       }
       return session;
     },
   },
-};
+});
 
-const handler = async (request: Request) => {
-  const url = new URL(request.url);
-  if (url.searchParams.get("debug") === "1") {
-    const providerIds = providers.map((provider) => provider.id);
-    const googleClientId = process.env.GOOGLE_CLIENT_ID ?? "";
-    const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET ?? "";
-    const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? "";
-    const authUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "";
-    return new Response(
-      JSON.stringify({
-        hasGoogleId: !!process.env.GOOGLE_CLIENT_ID,
-        hasGoogleSecret: !!process.env.GOOGLE_CLIENT_SECRET,
-        hasAuthUrl: !!process.env.AUTH_URL || !!process.env.NEXTAUTH_URL,
-        hasAuthSecret: !!process.env.AUTH_SECRET || !!process.env.NEXTAUTH_SECRET,
-        trustHost: process.env.AUTH_TRUST_HOST ?? null,
-        authUrl: authUrl || null,
-        requestOrigin: url.origin,
-        requestHost: url.host,
-        providerIds,
-        googleClientIdLength: googleClientId.length,
-        googleClientSecretLength: googleClientSecret.length,
-        authSecretLength: authSecret.length,
-      }),
-      { status: 200, headers: { "content-type": "application/json" } }
-    );
-  }
-  if (url.searchParams.get("debug") === "2") {
-    const response = await Auth(request, authConfig);
-    const bodyText = await response.text();
-    return new Response(
-      JSON.stringify({
-        status: response.status,
-        statusText: response.statusText,
-        body: bodyText,
-      }),
-      { status: 200, headers: { "content-type": "application/json" } }
-    );
-  }
-  if (url.searchParams.get("debug") === "3") {
-    try {
-      const response = await Auth(request, authConfig);
-      const bodyText = await response.text();
-      const location = response.headers.get("location");
-      return new Response(
-        JSON.stringify({
-          ok: response.ok,
-          status: response.status,
-          statusText: response.statusText,
-          location,
-          body: bodyText,
-        }),
-        { status: 200, headers: { "content-type": "application/json" } }
-      );
-    } catch (error) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: error instanceof Error ? error.message : String(error),
-        }),
-        { status: 200, headers: { "content-type": "application/json" } }
-      );
-    }
-  }
-  if (url.searchParams.get("debug") === "4") {
-    const logs: { level: string; message: string }[] = [];
-    const logger = {
-      error: (message: unknown) => {
-        logs.push({
-          level: "error",
-          message: message instanceof Error ? message.message : String(message),
-        });
-      },
-      warn: (message: unknown) => {
-        logs.push({
-          level: "warn",
-          message: message instanceof Error ? message.message : String(message),
-        });
-      },
-      debug: (message: unknown) => {
-        logs.push({
-          level: "debug",
-          message: message instanceof Error ? message.message : String(message),
-        });
-      },
-    };
-    const response = await Auth(request, { ...authConfig, logger, debug: true });
-    const bodyText = await response.text();
-    const location = response.headers.get("location");
-    return new Response(
-      JSON.stringify({
-        status: response.status,
-        statusText: response.statusText,
-        location,
-        body: bodyText,
-        logs,
-      }),
-      { status: 200, headers: { "content-type": "application/json" } }
-    );
-  }
-  return Auth(request, authConfig);
-};
-
-export const GET = handler;
-export const POST = handler;
+export const { GET, POST } = auth.handlers;
