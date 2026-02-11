@@ -74,9 +74,9 @@ const handler = async (request: Request) => {
   }
   const nextauth = url.searchParams.get("nextauth");
   if (nextauth) {
-    if (url.pathname === (authConfig.basePath ?? "/auth")) {
-      url.pathname = `${authConfig.basePath ?? "/auth"}/${nextauth}`;
-    }
+    const basePath = authConfig.basePath ?? "/auth";
+    const actionPath = nextauth.replace(/^\//, "");
+    url.pathname = `${basePath}/${actionPath}`;
     url.searchParams.delete("nextauth");
     request = new Request(url, request);
   }
