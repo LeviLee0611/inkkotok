@@ -102,6 +102,17 @@ const handler = async (request: Request) => {
       { status: 200, headers: { "content-type": "application/json" } }
     );
   }
+  try {
+    const parsed = parseActionAndProviderId(
+      url.pathname,
+      authConfig.basePath ?? "/auth"
+    );
+    if (parsed.action === "signin" && parsed.providerId && request.method === "GET") {
+      return Response.redirect(new URL("/auth", url));
+    }
+  } catch {
+    // fall through to Auth for error handling
+  }
   if (url.searchParams.get("debug") === "3") {
     const logs: { level: string; message: string }[] = [];
     const logger = {
