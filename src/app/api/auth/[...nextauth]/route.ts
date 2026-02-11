@@ -62,6 +62,12 @@ function parseActionAndProviderId(pathname: string, base: string) {
 
 const handler = async (request: Request) => {
   const url = new URL(request.url);
+  const nextauth = url.searchParams.get("nextauth");
+  if (nextauth && url.pathname === (authConfig.basePath ?? "/auth")) {
+    url.pathname = `${authConfig.basePath ?? "/auth"}/${nextauth}`;
+    url.searchParams.delete("nextauth");
+    request = new Request(url, request);
+  }
   if (url.searchParams.get("debug") === "1") {
     let parsed: { action?: string; providerId?: string; error?: string } = {};
     try {
