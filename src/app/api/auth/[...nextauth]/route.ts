@@ -81,6 +81,45 @@ const handler = async (request: Request) => {
     url.searchParams.delete("nextauth");
     request = new Request(url, request);
   }
+  if (url.searchParams.get("debug") === "4") {
+    let parsed: { action?: string; providerId?: string; error?: string } = {};
+    try {
+      parsed = parseActionAndProviderId(
+        url.pathname,
+        authConfig.basePath ?? "/auth"
+      );
+    } catch (error) {
+      parsed.error = error instanceof Error ? error.message : String(error);
+    }
+    return new Response(
+      JSON.stringify({
+        originalPath,
+        rewrittenPath: url.pathname,
+        basePath: authConfig.basePath ?? null,
+        nextauth,
+        parsed,
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
+  }
+  let authRequest = request;
+  let authOptions: AuthConfig = authConfig;
+  try {
+    const parsed = parseActionAndProviderId(
+      url.pathname,
+      authConfig.basePath ?? "/auth"
+    );
+    if (parsed.action === "signin" && parsed.providerId && request.method === "GET") {
+      authRequest = new Request(url, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: "",
+      });
+      authOptions = { ...authConfig, skipCSRFCheck };
+    }
+  } catch {
+    // fall through to Auth for error handling
+  }
   if (url.searchParams.get("debug") === "3") {
     const logs: { level: string; message: string }[] = [];
     const logger = {
@@ -103,7 +142,7 @@ const handler = async (request: Request) => {
         });
       },
     };
-    const response = await Auth(request, { ...authConfig, logger, debug: true });
+    const response = await Auth(authRequest, { ...authOptions, logger, debug: true });
     const bodyText = await response.text();
     const location = response.headers.get("location");
     return new Response(
@@ -116,43 +155,6 @@ const handler = async (request: Request) => {
       }),
       { status: 200, headers: { "content-type": "application/json" } }
     );
-  }
-  if (url.searchParams.get("debug") === "4") {
-    let parsed: { action?: string; providerId?: string; error?: string } = {};
-    try {
-      parsed = parseActionAndProviderId(
-        url.pathname,
-        authConfig.basePath ?? "/auth"
-      );
-    } catch (error) {
-      parsed.error = error instanceof Error ? error.message : String(error);
-    }
-    return new Response(
-      JSON.stringify({
-        originalPath,
-        rewrittenPath: url.pathname,
-        basePath: authConfig.basePath ?? null,
-        nextauth,
-        parsed,
-      }),
-      { status: 200, headers: { "content-type": "application/json" } }
-    );
-  }
-  try {
-    const parsed = parseActionAndProviderId(
-      url.pathname,
-      authConfig.basePath ?? "/auth"
-    );
-    if (parsed.action === "signin" && parsed.providerId && request.method === "GET") {
-      const postRequest = new Request(url, {
-        method: "POST",
-        headers: { "content-type": "application/x-www-form-urlencoded" },
-        body: "",
-      });
-      return Auth(postRequest, { ...authConfig, skipCSRFCheck });
-    }
-  } catch {
-    // fall through to Auth for error handling
   }
   if (url.searchParams.get("debug") === "1") {
     let parsed: { action?: string; providerId?: string; error?: string } = {};
@@ -171,7 +173,7 @@ const handler = async (request: Request) => {
       { status: 200, headers: { "content-type": "application/json" } }
     );
   }
-  return Auth(request, authConfig);
+  return Auth(authRequest, authOptions);
 };
 
 export const GET = handler;
