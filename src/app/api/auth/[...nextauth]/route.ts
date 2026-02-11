@@ -92,11 +92,13 @@ const handler = async (request: Request) => {
     try {
       const response = await Auth(request, authConfig);
       const bodyText = await response.text();
+      const location = response.headers.get("location");
       return new Response(
         JSON.stringify({
           ok: response.ok,
           status: response.status,
           statusText: response.statusText,
+          location,
           body: bodyText,
         }),
         { status: 200, headers: { "content-type": "application/json" } }
