@@ -59,6 +59,9 @@ const handler = (request: Request) => {
         hasAuthUrl: !!process.env.AUTH_URL || !!process.env.NEXTAUTH_URL,
         hasAuthSecret: !!process.env.AUTH_SECRET || !!process.env.NEXTAUTH_SECRET,
         trustHost: process.env.AUTH_TRUST_HOST ?? null,
+        authUrl: process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? null,
+        requestOrigin: url.origin,
+        requestHost: url.host,
       }),
       { status: 200, headers: { "content-type": "application/json" } }
     );
