@@ -73,12 +73,34 @@ const handler = async (request: Request) => {
     );
   }
   const nextauth = url.searchParams.get("nextauth");
+  const originalPath = url.pathname;
   if (nextauth) {
     const basePath = authConfig.basePath ?? "/auth";
     const actionPath = nextauth.replace(/^\//, "");
     url.pathname = `${basePath}/${actionPath}`;
     url.searchParams.delete("nextauth");
     request = new Request(url, request);
+  }
+  if (url.searchParams.get("debug") === "4") {
+    let parsed: { action?: string; providerId?: string; error?: string } = {};
+    try {
+      parsed = parseActionAndProviderId(
+        url.pathname,
+        authConfig.basePath ?? "/auth"
+      );
+    } catch (error) {
+      parsed.error = error instanceof Error ? error.message : String(error);
+    }
+    return new Response(
+      JSON.stringify({
+        originalPath,
+        rewrittenPath: url.pathname,
+        basePath: authConfig.basePath ?? null,
+        nextauth,
+        parsed,
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
   }
   if (url.searchParams.get("debug") === "3") {
     const logs: { level: string; message: string }[] = [];
