@@ -49,7 +49,22 @@ const authConfig: AuthConfig = {
   },
 };
 
-const handler = (request: Request) => Auth(request, authConfig);
+const handler = (request: Request) => {
+  const url = new URL(request.url);
+  if (url.searchParams.get("debug") === "1") {
+    return new Response(
+      JSON.stringify({
+        hasGoogleId: !!process.env.GOOGLE_CLIENT_ID,
+        hasGoogleSecret: !!process.env.GOOGLE_CLIENT_SECRET,
+        hasAuthUrl: !!process.env.AUTH_URL || !!process.env.NEXTAUTH_URL,
+        hasAuthSecret: !!process.env.AUTH_SECRET || !!process.env.NEXTAUTH_SECRET,
+        trustHost: process.env.AUTH_TRUST_HOST ?? null,
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
+  }
+  return Auth(request, authConfig);
+};
 
 export const GET = handler;
 export const POST = handler;
