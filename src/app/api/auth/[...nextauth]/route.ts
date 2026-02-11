@@ -1,4 +1,4 @@
-import { Auth, type AuthConfig } from "@auth/core";
+import { Auth, skipCSRFCheck, type AuthConfig } from "@auth/core";
 import Google from "@auth/core/providers/google";
 
 import { upsertProfile } from "@/lib/profile";
@@ -144,7 +144,12 @@ const handler = async (request: Request) => {
       authConfig.basePath ?? "/auth"
     );
     if (parsed.action === "signin" && parsed.providerId && request.method === "GET") {
-      return Response.redirect(new URL("/auth", url));
+      const postRequest = new Request(url, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: "",
+      });
+      return Auth(postRequest, { ...authConfig, skipCSRFCheck });
     }
   } catch {
     // fall through to Auth for error handling
