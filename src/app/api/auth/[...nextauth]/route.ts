@@ -62,6 +62,16 @@ function parseActionAndProviderId(pathname: string, base: string) {
 
 const handler = async (request: Request) => {
   const url = new URL(request.url);
+  if (url.searchParams.get("debug") === "2") {
+    return new Response(
+      JSON.stringify({
+        requestUrl: url.toString(),
+        requestPath: url.pathname,
+        requestQuery: Object.fromEntries(url.searchParams.entries()),
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
+  }
   const nextauth = url.searchParams.get("nextauth");
   if (nextauth && url.pathname === (authConfig.basePath ?? "/auth")) {
     url.pathname = `${authConfig.basePath ?? "/auth"}/${nextauth}`;
