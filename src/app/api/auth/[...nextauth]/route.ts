@@ -73,10 +73,48 @@ const handler = async (request: Request) => {
     );
   }
   const nextauth = url.searchParams.get("nextauth");
-  if (nextauth && url.pathname === (authConfig.basePath ?? "/auth")) {
-    url.pathname = `${authConfig.basePath ?? "/auth"}/${nextauth}`;
+  if (nextauth) {
+    if (url.pathname === (authConfig.basePath ?? "/auth")) {
+      url.pathname = `${authConfig.basePath ?? "/auth"}/${nextauth}`;
+    }
     url.searchParams.delete("nextauth");
     request = new Request(url, request);
+  }
+  if (url.searchParams.get("debug") === "3") {
+    const logs: { level: string; message: string }[] = [];
+    const logger = {
+      error: (message: unknown) => {
+        logs.push({
+          level: "error",
+          message: message instanceof Error ? message.message : String(message),
+        });
+      },
+      warn: (message: unknown) => {
+        logs.push({
+          level: "warn",
+          message: message instanceof Error ? message.message : String(message),
+        });
+      },
+      debug: (message: unknown) => {
+        logs.push({
+          level: "debug",
+          message: message instanceof Error ? message.message : String(message),
+        });
+      },
+    };
+    const response = await Auth(request, { ...authConfig, logger, debug: true });
+    const bodyText = await response.text();
+    const location = response.headers.get("location");
+    return new Response(
+      JSON.stringify({
+        status: response.status,
+        statusText: response.statusText,
+        location,
+        body: bodyText,
+        logs,
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
   }
   if (url.searchParams.get("debug") === "1") {
     let parsed: { action?: string; providerId?: string; error?: string } = {};
