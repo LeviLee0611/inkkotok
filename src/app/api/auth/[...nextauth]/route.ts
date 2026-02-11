@@ -88,6 +88,29 @@ const handler = async (request: Request) => {
       { status: 200, headers: { "content-type": "application/json" } }
     );
   }
+  if (url.searchParams.get("debug") === "3") {
+    try {
+      const response = await Auth(request, authConfig);
+      const bodyText = await response.text();
+      return new Response(
+        JSON.stringify({
+          ok: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+          body: bodyText,
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    } catch (error) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    }
+  }
   return Auth(request, authConfig);
 };
 
