@@ -113,6 +113,42 @@ const handler = async (request: Request) => {
       );
     }
   }
+  if (url.searchParams.get("debug") === "4") {
+    const logs: { level: string; message: string }[] = [];
+    const logger = {
+      error: (message: unknown) => {
+        logs.push({
+          level: "error",
+          message: message instanceof Error ? message.message : String(message),
+        });
+      },
+      warn: (message: unknown) => {
+        logs.push({
+          level: "warn",
+          message: message instanceof Error ? message.message : String(message),
+        });
+      },
+      debug: (message: unknown) => {
+        logs.push({
+          level: "debug",
+          message: message instanceof Error ? message.message : String(message),
+        });
+      },
+    };
+    const response = await Auth(request, { ...authConfig, logger, debug: true });
+    const bodyText = await response.text();
+    const location = response.headers.get("location");
+    return new Response(
+      JSON.stringify({
+        status: response.status,
+        statusText: response.statusText,
+        location,
+        body: bodyText,
+        logs,
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
+  }
   return Auth(request, authConfig);
 };
 
