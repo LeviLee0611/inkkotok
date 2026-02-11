@@ -1,5 +1,8 @@
 import { listPosts } from "@/lib/posts";
 
+export const runtime = "edge";
+export const dynamic = "force-dynamic";
+
 function toExcerpt(text: string, limit = 120) {
   if (text.length <= limit) return text;
   return `${text.slice(0, limit)}...`;
