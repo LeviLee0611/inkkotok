@@ -1,3 +1,5 @@
+import SignInForm from "./SignInForm";
+
 export default function AuthPage() {
   return (
     <div className="min-h-screen px-6 pb-20 pt-10 md:px-12">
@@ -14,15 +16,7 @@ export default function AuthPage() {
       </header>
 
       <main className="mx-auto mt-8 grid w-full max-w-3xl gap-4">
-        <a
-          className="rounded-3xl border border-[var(--border-soft)] bg-white/90 px-6 py-4 text-left text-sm font-semibold text-[var(--ink)] shadow-sm"
-          href="/api/auth/signin/google"
-        >
-          Google로 로그인
-          <p className="mt-1 text-xs text-zinc-500">
-            가장 빠른 시작 방법이에요
-          </p>
-        </a>
+        <SignInForm />
         <div className="rounded-3xl border border-[var(--border-soft)] bg-[var(--paper)] px-6 py-4 text-xs text-zinc-600">
           로그인하면 익명 닉네임이 자동 생성되고, 활동 기록만 저장돼요. 이메일
           주소나 실명은 커뮤니티에 공개되지 않습니다.
