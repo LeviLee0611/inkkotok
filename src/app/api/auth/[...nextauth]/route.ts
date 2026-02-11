@@ -49,7 +49,7 @@ const authConfig: AuthConfig = {
   },
 };
 
-const handler = (request: Request) => {
+const handler = async (request: Request) => {
   const url = new URL(request.url);
   if (url.searchParams.get("debug") === "1") {
     const providerIds = providers.map((provider) => provider.id);
@@ -71,6 +71,18 @@ const handler = (request: Request) => {
         googleClientIdLength: googleClientId.length,
         googleClientSecretLength: googleClientSecret.length,
         authSecretLength: authSecret.length,
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
+  }
+  if (url.searchParams.get("debug") === "2") {
+    const response = await Auth(request, authConfig);
+    const bodyText = await response.text();
+    return new Response(
+      JSON.stringify({
+        status: response.status,
+        statusText: response.statusText,
+        body: bodyText,
       }),
       { status: 200, headers: { "content-type": "application/json" } }
     );
