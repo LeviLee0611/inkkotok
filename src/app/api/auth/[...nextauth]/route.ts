@@ -1,18 +1,22 @@
-import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
+import { Auth, type AuthConfig } from "@auth/core";
+import Google from "@auth/core/providers/google";
 
 import { upsertProfile } from "@/lib/profile";
 
 export const runtime = "edge";
 
-const auth = NextAuth({
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-    }),
-  ],
+const providers = [
+  Google({
+    clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  }),
+];
+
+const authConfig: AuthConfig = {
+  basePath: "/api/auth",
+  providers,
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  trustHost: process.env.AUTH_TRUST_HOST === "true",
   session: { strategy: "jwt" },
   pages: {
     signIn: "/auth",
@@ -43,6 +47,40 @@ const auth = NextAuth({
       return session;
     },
   },
-});
+};
 
-export const { GET, POST } = auth.handlers;
+function parseActionAndProviderId(pathname: string, base: string) {
+  const match = pathname.match(new RegExp(`^${base}(.+)`));
+  if (match === null) throw new Error(`Cannot parse action at ${pathname}`);
+  const actionAndProviderId = match.at(-1) ?? "";
+  const parts = actionAndProviderId.replace(/^\//, "").split("/").filter(Boolean);
+  if (parts.length !== 1 && parts.length !== 2)
+    throw new Error(`Cannot parse action at ${pathname}`);
+  const [action, providerId] = parts;
+  return { action, providerId };
+}
+
+const handler = async (request: Request) => {
+  const url = new URL(request.url);
+  if (url.searchParams.get("debug") === "1") {
+    let parsed: { action?: string; providerId?: string; error?: string } = {};
+    try {
+      parsed = parseActionAndProviderId(url.pathname, authConfig.basePath ?? "/auth");
+    } catch (error) {
+      parsed.error = error instanceof Error ? error.message : String(error);
+    }
+    return new Response(
+      JSON.stringify({
+        requestUrl: url.toString(),
+        requestPath: url.pathname,
+        basePath: authConfig.basePath ?? null,
+        parsed,
+      }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
+  }
+  return Auth(request, authConfig);
+};
+
+export const GET = handler;
+export const POST = handler;
