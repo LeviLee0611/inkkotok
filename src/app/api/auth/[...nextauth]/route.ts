@@ -52,6 +52,11 @@ const authConfig: AuthConfig = {
 const handler = (request: Request) => {
   const url = new URL(request.url);
   if (url.searchParams.get("debug") === "1") {
+    const providerIds = providers.map((provider) => provider.id);
+    const googleClientId = process.env.GOOGLE_CLIENT_ID ?? "";
+    const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET ?? "";
+    const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? "";
+    const authUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "";
     return new Response(
       JSON.stringify({
         hasGoogleId: !!process.env.GOOGLE_CLIENT_ID,
@@ -59,9 +64,13 @@ const handler = (request: Request) => {
         hasAuthUrl: !!process.env.AUTH_URL || !!process.env.NEXTAUTH_URL,
         hasAuthSecret: !!process.env.AUTH_SECRET || !!process.env.NEXTAUTH_SECRET,
         trustHost: process.env.AUTH_TRUST_HOST ?? null,
-        authUrl: process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? null,
+        authUrl: authUrl || null,
         requestOrigin: url.origin,
         requestHost: url.host,
+        providerIds,
+        googleClientIdLength: googleClientId.length,
+        googleClientSecretLength: googleClientSecret.length,
+        authSecretLength: authSecret.length,
       }),
       { status: 200, headers: { "content-type": "application/json" } }
     );
