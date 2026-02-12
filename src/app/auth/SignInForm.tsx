@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 
 export default function SignInForm() {
   const [loading, setLoading] = useState(false);
 
   const onGoogleSignIn = async () => {
     setLoading(true);
-    await signIn("google", { callbackUrl: "/feed" });
-    setLoading(false);
+    // Avoid fetch-based signIn to prevent CORS errors on OAuth redirects.
+    window.location.assign("/api/auth/signin/google?callbackUrl=%2Ffeed");
   };
 
   return (
