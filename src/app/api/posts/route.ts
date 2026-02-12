@@ -1,5 +1,6 @@
 import { listPosts, createPost } from "@/lib/posts";
 import { getUserIdFromRequest } from "@/lib/auth";
+import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
@@ -8,7 +9,7 @@ export async function GET() {
   return Response.json(posts);
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const userId = await getUserIdFromRequest(request);
   if (!userId) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });

@@ -1,9 +1,10 @@
 import { getToken } from "next-auth/jwt";
+import type { NextRequest } from "next/server";
 
 const SECURE_COOKIE = "__Secure-authjs.session-token";
 const DEV_COOKIE = "authjs.session-token";
 
-export async function getUserIdFromRequest(request: Request) {
+export async function getUserIdFromRequest(request: NextRequest) {
   const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
   if (!secret) return null;
 

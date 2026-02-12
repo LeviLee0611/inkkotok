@@ -1,5 +1,6 @@
 import { createComment, listComments } from "@/lib/posts";
 import { getUserIdFromRequest } from "@/lib/auth";
+import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
@@ -13,7 +14,7 @@ export async function GET(_request: Request, context: RouteContext) {
   return Response.json(comments);
 }
 
-export async function POST(request: Request, context: RouteContext) {
+export async function POST(request: NextRequest, context: RouteContext) {
   const { id } = await context.params;
   const userId = await getUserIdFromRequest(request);
   if (!userId) {
