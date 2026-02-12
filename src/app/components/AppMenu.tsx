@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { signOut } from "next-auth/react";
-
 type SessionUser = {
   id?: string;
   name?: string | null;
@@ -119,7 +117,9 @@ export default function AppMenu() {
           <button
             className="mt-1 w-full rounded-xl px-3 py-2 text-left text-[var(--cocoa)] hover:bg-[var(--paper)]"
             type="button"
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() => {
+              window.location.assign("/api/auth/signout?callbackUrl=/");
+            }}
           >
             로그아웃
           </button>

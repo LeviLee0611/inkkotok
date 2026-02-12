@@ -61,7 +61,20 @@ const handler = async (request: Request) => {
   // to avoid Unsupported action errors while keeping internal actions (e.g. _log) intact.
   const basePath = authConfig.basePath ?? "/api/auth";
   const signinPrefix = `${basePath}/signin/`;
+  const signoutPrefix = `${basePath}/signout`;
   if (request.method === "GET" && url.pathname.startsWith(signinPrefix)) {
+    const nextUrl = new URL(url);
+    const body = nextUrl.searchParams.toString();
+    nextUrl.search = "";
+    const authRequest = new Request(nextUrl, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body,
+    });
+    return Auth(authRequest, { ...authConfig, skipCSRFCheck });
+  }
+
+  if (request.method === "GET" && url.pathname === signoutPrefix) {
     const nextUrl = new URL(url);
     const body = nextUrl.searchParams.toString();
     nextUrl.search = "";
