@@ -7,6 +7,8 @@ export const runtime = "edge";
 
 const authConfig: AuthConfig = {
   basePath: "/api/auth",
+  // Cloudflare Pages requires explicit host trust in production.
+  trustHost: true,
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
