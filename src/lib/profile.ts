@@ -69,3 +69,15 @@ export async function upsertProfile(input: UpsertProfileInput) {
   if (updateError) throw updateError;
   return existing.display_name;
 }
+
+export async function getProfileDisplayName(userId: string) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.display_name ?? null;
+}

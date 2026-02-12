@@ -55,17 +55,18 @@ export async function PATCH(request: NextRequest) {
 
   const supabase = getSupabaseAdmin();
 
-  const { data: existing, error: existingError } = await supabase
+  const { data: existingRows, error: existingError } = await supabase
     .from("profiles")
     .select("id")
     .ilike("display_name", username)
-    .maybeSingle();
+    .limit(10);
 
   if (existingError) {
     return NextResponse.json({ error: "Validation failed." }, { status: 500 });
   }
 
-  if (existing && existing.id !== userId) {
+  const duplicate = (existingRows ?? []).find((row) => row.id !== userId);
+  if (duplicate) {
     return NextResponse.json(
       { error: "이미 사용 중인 닉네임이에요." },
       { status: 409 }

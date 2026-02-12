@@ -1,7 +1,7 @@
 import { Auth, skipCSRFCheck, type AuthConfig } from "@auth/core";
 import Google from "@auth/core/providers/google";
 
-import { upsertProfile } from "@/lib/profile";
+import { getProfileDisplayName, upsertProfile } from "@/lib/profile";
 
 export const runtime = "edge";
 
@@ -21,7 +21,9 @@ const authConfig: AuthConfig = {
   callbacks: {
     async jwt({ token, account }) {
       const subject = token.sub ?? (token as { id?: string }).id;
-      if (account?.provider && subject) {
+      if (!subject) return token;
+
+      if (account?.provider) {
         try {
           const displayName = await upsertProfile({
             id: subject,
@@ -29,9 +31,15 @@ const authConfig: AuthConfig = {
             image: token.picture,
             provider: account.provider,
           });
-          token.nickname = displayName;
+          token.nickname = displayName ?? null;
         } catch (error) {
           console.error("profile upsert failed", error);
+        }
+      } else {
+        try {
+          token.nickname = await getProfileDisplayName(subject);
+        } catch (error) {
+          console.error("profile fetch failed", error);
         }
       }
       return token;
@@ -44,6 +52,9 @@ const authConfig: AuthConfig = {
         };
         user.id = token.sub ?? user.id;
         user.nickname = typeof token.nickname === "string" ? token.nickname : null;
+        if (user.nickname) {
+          user.name = user.nickname;
+        }
       }
       return session;
     },

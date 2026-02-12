@@ -20,25 +20,51 @@ export type CommentRecord = {
   created_at: string;
 };
 
+async function getDisplayNameMap(userIds: string[]) {
+  if (!userIds.length) {
+    return new Map<string, string | null>();
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, display_name")
+    .in("id", userIds);
+
+  if (error) throw error;
+
+  const map = new Map<string, string | null>();
+  (data ?? []).forEach((profile) => {
+    map.set(profile.id as string, (profile.display_name as string | null) ?? null);
+  });
+  return map;
+}
+
 export async function listPosts(limit = 20) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("posts")
-    .select("id, title, lounge, body, created_at, author:profiles(display_name)")
+    .select("id, author_id, title, lounge, body, created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) throw error;
-  return data ?? [];
+
+  const posts = (data ?? []) as Array<Omit<PostRecord, "author">>;
+  const authorIds = Array.from(new Set(posts.map((post) => post.author_id)));
+  const displayNameMap = await getDisplayNameMap(authorIds);
+
+  return posts.map((post) => ({
+    ...post,
+    author: [{ display_name: displayNameMap.get(post.author_id) ?? null }],
+  }));
 }
 
 export async function getPostById(id: string) {
   const supabase = getSupabaseAdmin();
   let { data, error } = await supabase
     .from("posts")
-    .select(
-      "id, title, lounge, body, author_id, created_at, author:profiles(display_name)"
-    )
+    .select("id, title, lounge, body, author_id, created_at")
     .eq("id", id)
     .maybeSingle();
 
@@ -51,20 +77,37 @@ export async function getPostById(id: string) {
   }
 
   if (error) throw error;
-  return data;
+  if (!data) return data;
+
+  const displayName = (await getDisplayNameMap([data.author_id])).get(
+    data.author_id
+  ) ?? null;
+
+  return {
+    ...data,
+    author: [{ display_name: displayName }],
+  };
 }
 
 export async function listComments(postId: string, limit = 50) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("comments")
-    .select("id, post_id, author_id, body, created_at, author:profiles(display_name)")
+    .select("id, post_id, author_id, body, created_at")
     .eq("post_id", postId)
     .order("created_at", { ascending: true })
     .limit(limit);
 
   if (error) throw error;
-  return data ?? [];
+
+  const comments = (data ?? []) as Array<Omit<CommentRecord, "author">>;
+  const authorIds = Array.from(new Set(comments.map((comment) => comment.author_id)));
+  const displayNameMap = await getDisplayNameMap(authorIds);
+
+  return comments.map((comment) => ({
+    ...comment,
+    author: [{ display_name: displayNameMap.get(comment.author_id) ?? null }],
+  }));
 }
 
 export async function createPost(input: {
