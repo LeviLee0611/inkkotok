@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { signOut } from "next-auth/react";
-
 type SessionUser = {
   id?: string;
   name?: string | null;
@@ -24,13 +22,18 @@ type ProfileResponse = {
   } | null;
 };
 
-export default function UserPanel() {
+type UserPanelProps = {
+  redirectTo?: string;
+};
+
+export default function UserPanel({ redirectTo }: UserPanelProps) {
   const [session, setSession] = useState<SessionResponse | null>(null);
   const [profile, setProfile] = useState<ProfileResponse["profile"] | null>(null);
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -96,6 +99,9 @@ export default function UserPanel() {
       setProfile((prev) =>
         prev ? { ...prev, display_name: data.username ?? username } : prev
       );
+      if (redirectTo) {
+        window.location.assign(redirectTo);
+      }
     } catch {
       setMessage("닉네임 저장 중 오류가 발생했어요.");
     } finally {
@@ -152,13 +158,6 @@ export default function UserPanel() {
             <p className="text-xs text-zinc-500">{session.user.email}</p>
           </div>
         </div>
-        <button
-          className="rounded-full border border-[var(--border-soft)] bg-white px-4 py-2 text-sm font-semibold text-[var(--cocoa)]"
-          type="button"
-          onClick={() => signOut({ callbackUrl: "/" })}
-        >
-          로그아웃
-        </button>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">

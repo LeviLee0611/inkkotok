@@ -18,7 +18,7 @@ export default async function FeedPage() {
     <div className="min-h-screen px-6 pb-20 pt-10 md:px-12">
       <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-[var(--shadow)]">
         <p className="text-sm font-semibold text-[var(--cocoa)]">
-          익명 커뮤니티 피드
+          커뮤니티 피드
         </p>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -101,7 +101,7 @@ export default async function FeedPage() {
           </div>
           <div className="rounded-3xl border border-[var(--border-soft)] bg-white/90 p-5 shadow-sm">
             <p className="text-xs font-semibold text-[var(--cocoa)]">
-              익명 이용 안내
+              이용 안내
             </p>
             <ul className="mt-3 grid gap-2 text-xs text-zinc-600">
               <li>읽기는 누구나, 글/댓글은 로그인 필요</li>

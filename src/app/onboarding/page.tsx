@@ -16,7 +16,7 @@ export default function OnboardingPage() {
         </p>
       </header>
 
-      <UserPanel />
+      <UserPanel redirectTo="/" />
 
       <div className="mx-auto mt-6 flex w-full max-w-6xl justify-end">
         <a

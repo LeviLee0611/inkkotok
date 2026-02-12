@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR, Noto_Serif_KR } from "next/font/google";
 import "./globals.css";
+import AppMenu from "@/app/components/AppMenu";
+import ThemeInit from "@/app/components/ThemeInit";
 
 const notoSans = Noto_Sans_KR({
   variable: "--font-body",
@@ -34,6 +36,8 @@ export default function RootLayout({
       <body
         className={`${notoSans.variable} ${notoSerif.variable} antialiased font-body`}
       >
+        <ThemeInit />
+        <AppMenu />
         {children}
       </body>
     </html>

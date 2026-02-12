@@ -120,7 +120,7 @@ export default function WriteForm() {
           글 작성은 로그인 후 가능합니다.
         </p>
         <p className="mt-2 text-xs text-zinc-500">
-          Google 로그인 후 익명 닉네임으로 글을 작성할 수 있어요.
+          Google 로그인 후 닉네임으로 글을 작성할 수 있어요.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <a
