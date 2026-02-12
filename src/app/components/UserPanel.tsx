@@ -177,7 +177,7 @@ export default function UserPanel() {
         <p className="mt-3 text-xs text-zinc-500">{message}</p>
       ) : (
         <p className="mt-3 text-xs text-zinc-500">
-          부적절한 단어는 사용할 수 없어요. 닉네임 변경은 30일에 1회.
+          닉네임 변경은 30일에 1회만 가능합니다.
         </p>
       )}
     </div>

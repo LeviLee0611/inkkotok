@@ -41,7 +41,7 @@ export default async function FeedPage() {
               className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
               href="/write"
             >
-              글쓰기 (로그인 필요)
+              글쓰기
             </a>
           </div>
         </div>
