@@ -1,9 +1,8 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { generateAnonymousName } from "@/lib/nickname";
 
 type ProfileRecord = {
   id: string;
-  display_name: string;
+  display_name: string | null;
   email: string | null;
   image_url: string | null;
   providers: string[];
@@ -36,7 +35,7 @@ export async function upsertProfile(input: UpsertProfileInput) {
   if (!existing) {
     const insert: ProfileRecord = {
       id: input.id,
-      display_name: generateAnonymousName(),
+      display_name: null,
       email: input.email ?? null,
       image_url: input.image ?? null,
       providers: [input.provider],
