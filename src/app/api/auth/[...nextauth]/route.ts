@@ -62,10 +62,13 @@ const handler = async (request: Request) => {
   const basePath = authConfig.basePath ?? "/api/auth";
   const signinPrefix = `${basePath}/signin/`;
   if (request.method === "GET" && url.pathname.startsWith(signinPrefix)) {
-    const authRequest = new Request(url, {
+    const nextUrl = new URL(url);
+    const body = nextUrl.searchParams.toString();
+    nextUrl.search = "";
+    const authRequest = new Request(nextUrl, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: "",
+      body,
     });
     return Auth(authRequest, { ...authConfig, skipCSRFCheck });
   }
