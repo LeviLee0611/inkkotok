@@ -140,13 +140,13 @@ export default function WriteForm() {
     );
   }
 
-  const needsNickname = !profile?.nickname_updated_at;
+  const needsNickname = !profile?.display_name;
 
   return (
     <main className="mx-auto mt-8 w-full max-w-4xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
       {needsNickname ? (
         <div className="mb-6 rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--cocoa)]">
-          닉네임을 먼저 설정해야 글을 작성할 수 있어요.{" "}
+          닉네임을 먼저 설정하면 더 잘 보여요.{" "}
           <a className="font-semibold underline" href="/onboarding">
             닉네임 설정하러 가기
           </a>
@@ -160,7 +160,7 @@ export default function WriteForm() {
             placeholder="고민을 짧게 요약해요"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            disabled={needsNickname}
+            disabled={false}
           />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
@@ -176,7 +176,7 @@ export default function WriteForm() {
                 }`}
                 type="button"
                 onClick={() => setLounge(label)}
-                disabled={needsNickname}
+                disabled={false}
               >
                 {label}
               </button>
@@ -190,7 +190,7 @@ export default function WriteForm() {
             placeholder="상황과 감정을 자유롭게 적어주세요"
             value={content}
             onChange={(event) => setContent(event.target.value)}
-            disabled={needsNickname}
+            disabled={false}
           />
         </label>
       </div>
@@ -198,7 +198,7 @@ export default function WriteForm() {
         <button
           className="rounded-full bg-[var(--ink)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
           type="button"
-          disabled={saving || needsNickname}
+          disabled={saving}
           onClick={onSubmit}
         >
           {saving ? "작성 중..." : "작성 완료"}
