@@ -33,12 +33,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const id = await createPost({
-    authorId: userId,
-    title,
-    lounge,
-    body: content,
-  });
+  try {
+    const id = await createPost({
+      authorId: userId,
+      title,
+      lounge,
+      body: content,
+    });
 
-  return Response.json({ id }, { status: 201 });
+    return Response.json({ id }, { status: 201 });
+  } catch (error) {
+    console.error("createPost failed", error);
+    const message =
+      error instanceof Error ? error.message : "Create post failed.";
+    return Response.json({ error: message }, { status: 500 });
+  }
 }
