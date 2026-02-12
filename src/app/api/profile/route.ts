@@ -29,7 +29,11 @@ export async function GET(request: NextRequest) {
   }
 
   if (error) {
-    return NextResponse.json({ error: "Profile fetch failed." }, { status: 500 });
+    console.error("profile fetch failed", error);
+    return NextResponse.json(
+      { error: "Profile fetch failed.", detail: error.message ?? String(error) },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ profile: data });
