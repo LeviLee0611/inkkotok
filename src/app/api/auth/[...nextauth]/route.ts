@@ -57,8 +57,19 @@ const authConfig: AuthConfig = {
 
 const handler = async (request: Request) => {
   const url = new URL(request.url);
-  // Delegate all routing logic to Auth.js to avoid rejecting internal actions (e.g. _log)
-  // and keep behavior consistent across environments.
+  // Delegate routing to Auth.js but normalize GET /signin/:provider to POST
+  // to avoid Unsupported action errors while keeping internal actions (e.g. _log) intact.
+  const basePath = authConfig.basePath ?? "/api/auth";
+  const signinPrefix = `${basePath}/signin/`;
+  if (request.method === "GET" && url.pathname.startsWith(signinPrefix)) {
+    const authRequest = new Request(url, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: "",
+    });
+    return Auth(authRequest, { ...authConfig, skipCSRFCheck });
+  }
+
   return Auth(new Request(url, request), authConfig);
 };
 
