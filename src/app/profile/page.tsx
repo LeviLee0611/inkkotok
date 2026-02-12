@@ -71,11 +71,7 @@ export default function ProfilePage() {
         </div>
         <div className="rounded-3xl border border-[var(--border-soft)] bg-white/90 p-5 shadow-sm">
           <p className="text-xs text-zinc-500">가입일</p>
-          <p className="mt-2 text-2xl font-semibold text-[var(--ink)]">
-            {data?.profile?.created_at
-              ? new Date(data.profile.created_at).toLocaleDateString("ko-KR")
-              : "-"}
-          </p>
+          <p className="mt-2 text-2xl font-semibold text-[var(--ink)]">-</p>
         </div>
       </section>
 

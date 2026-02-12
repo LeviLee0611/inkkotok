@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, display_name, email, image_url, created_at")
+    .select("id, display_name, email, image_url")
     .eq("id", userId)
     .maybeSingle();
 

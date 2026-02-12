@@ -14,16 +14,14 @@ export async function GET(request: NextRequest) {
   const supabase = getSupabaseAdmin();
   let { data, error } = await supabase
     .from("profiles")
-    .select(
-      "id, display_name, email, image_url, providers, created_at, nickname_updated_at"
-    )
+    .select("id, display_name, email, image_url, providers, nickname_updated_at")
     .eq("id", userId)
     .maybeSingle();
 
   if (error) {
     ({ data, error } = await supabase
       .from("profiles")
-      .select("id, display_name, email, image_url, providers, created_at")
+      .select("id, display_name, email, image_url, providers")
       .eq("id", userId)
       .maybeSingle());
   }
