@@ -12,11 +12,21 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, email, image_url, providers, created_at")
+    .select(
+      "id, display_name, email, image_url, providers, created_at, nickname_updated_at"
+    )
     .eq("id", userId)
     .maybeSingle();
+
+  if (error) {
+    ({ data, error } = await supabase
+      .from("profiles")
+      .select("id, display_name, email, image_url, providers, created_at")
+      .eq("id", userId)
+      .maybeSingle());
+  }
 
   if (error) {
     return NextResponse.json({ error: "Profile fetch failed." }, { status: 500 });
@@ -62,14 +72,19 @@ export async function PATCH(request: NextRequest) {
 
   const nowIso = new Date().toISOString();
 
-  const { data: profileData, error: profileError } = await supabase
+  let { data: profileData, error: profileError } = await supabase
     .from("profiles")
     .select("id, nickname_updated_at")
     .eq("id", userId)
     .maybeSingle();
 
   if (profileError) {
-    return NextResponse.json({ error: "Profile lookup failed." }, { status: 500 });
+    ({ data: profileData } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle());
+    profileError = null;
   }
 
   if (profileData?.nickname_updated_at) {

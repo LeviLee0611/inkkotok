@@ -20,6 +20,10 @@ type SessionResponse = {
 
 export default function WriteForm() {
   const [session, setSession] = useState<SessionResponse | null>(null);
+  const [profile, setProfile] = useState<{
+    display_name?: string | null;
+    nickname_updated_at?: string | null;
+  } | null>(null);
   const [title, setTitle] = useState("");
   const [lounge, setLounge] = useState(LOUNGES[0]);
   const [content, setContent] = useState("");
@@ -36,6 +40,16 @@ export default function WriteForm() {
         const res = await fetch("/api/auth/session");
         const data = (await res.json()) as SessionResponse;
         if (!cancelled) setSession(data);
+
+        if (data?.user?.id) {
+          const profileRes = await fetch("/api/profile");
+          const profileData = (await profileRes.json()) as {
+            profile?: { display_name?: string | null; nickname_updated_at?: string | null };
+          };
+          if (!cancelled) {
+            setProfile(profileData.profile ?? null);
+          }
+        }
       } catch {
         if (!cancelled) setMessage("로그인 정보를 불러오지 못했어요.");
       } finally {
@@ -121,8 +135,18 @@ export default function WriteForm() {
     );
   }
 
+  const needsNickname = !profile?.nickname_updated_at;
+
   return (
     <main className="mx-auto mt-8 w-full max-w-4xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
+      {needsNickname ? (
+        <div className="mb-6 rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--cocoa)]">
+          닉네임을 먼저 설정해야 글을 작성할 수 있어요.{" "}
+          <a className="font-semibold underline" href="/onboarding">
+            닉네임 설정하러 가기
+          </a>
+        </div>
+      ) : null}
       <div className="grid gap-4">
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           제목
@@ -131,6 +155,7 @@ export default function WriteForm() {
             placeholder="고민을 짧게 요약해요"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
+            disabled={needsNickname}
           />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
@@ -146,6 +171,7 @@ export default function WriteForm() {
                 }`}
                 type="button"
                 onClick={() => setLounge(label)}
+                disabled={needsNickname}
               >
                 {label}
               </button>
@@ -159,6 +185,7 @@ export default function WriteForm() {
             placeholder="상황과 감정을 자유롭게 적어주세요"
             value={content}
             onChange={(event) => setContent(event.target.value)}
+            disabled={needsNickname}
           />
         </label>
       </div>
@@ -166,7 +193,7 @@ export default function WriteForm() {
         <button
           className="rounded-full bg-[var(--ink)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
           type="button"
-          disabled={saving}
+          disabled={saving || needsNickname}
           onClick={onSubmit}
         >
           {saving ? "작성 중..." : "작성 완료"}

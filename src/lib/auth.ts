@@ -1,4 +1,4 @@
-import { getToken } from "next-auth/jwt";
+import { getToken } from "@auth/core/jwt";
 import type { NextRequest } from "next/server";
 
 const SECURE_COOKIE = "__Secure-authjs.session-token";
