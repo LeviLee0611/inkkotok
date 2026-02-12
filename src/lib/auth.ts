@@ -16,6 +16,7 @@ export async function getUserIdFromRequest(request: Request | NextRequest) {
       req: request,
       secret,
       cookieName,
+      salt: cookieName,
     });
     if (token?.sub) return token.sub;
   }
