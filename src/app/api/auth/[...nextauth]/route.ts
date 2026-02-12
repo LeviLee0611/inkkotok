@@ -53,40 +53,11 @@ const authConfig: AuthConfig = {
   },
 };
 
-function parseActionAndProviderId(pathname: string, base: string) {
-  const match = pathname.match(new RegExp(`^${base}(.+)`));
-  if (match === null) throw new Error(`Cannot parse action at ${pathname}`);
-  const actionAndProviderId = match.at(-1) ?? "";
-  const parts = actionAndProviderId.replace(/^\//, "").split("/").filter(Boolean);
-  if (parts.length !== 1 && parts.length !== 2)
-    throw new Error(`Cannot parse action at ${pathname}`);
-  const [action, providerId] = parts;
-  return { action, providerId };
-}
-
 const handler = async (request: Request) => {
   const url = new URL(request.url);
-  let authRequest = request;
-  let authOptions: AuthConfig = authConfig;
-
-  try {
-    const parsed = parseActionAndProviderId(
-      url.pathname,
-      authConfig.basePath ?? "/auth"
-    );
-    if (parsed.action === "signin" && parsed.providerId && request.method === "GET") {
-      authRequest = new Request(url, {
-        method: "POST",
-        headers: { "content-type": "application/x-www-form-urlencoded" },
-        body: "",
-      });
-      authOptions = { ...authConfig, skipCSRFCheck };
-    }
-  } catch {
-    // fall through to Auth.js error handling
-  }
-
-  return Auth(authRequest, authOptions);
+  // Delegate all routing logic to Auth.js to avoid rejecting internal actions (e.g. _log)
+  // and keep behavior consistent across environments.
+  return Auth(new Request(url, request), authConfig);
 };
 
 export const GET = handler;
