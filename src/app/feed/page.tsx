@@ -1,4 +1,5 @@
 import { listPosts } from "@/lib/posts";
+import UserPanel from "@/app/components/UserPanel";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
@@ -45,6 +46,7 @@ export default async function FeedPage() {
           </div>
         </div>
       </header>
+      <UserPanel />
 
       <section className="mx-auto mt-8 grid w-full max-w-6xl gap-4 md:grid-cols-[1.2fr_0.8fr]">
         <div className="grid gap-4">
