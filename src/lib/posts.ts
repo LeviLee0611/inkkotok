@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 export type PostRecord = {
   id: string;
   author_id: string;
-  author?: { display_name: string | null } | null;
+  author?: { display_name: string | null }[] | null;
   title: string;
   body: string;
   lounge: string;
@@ -15,7 +15,7 @@ export type CommentRecord = {
   id: string;
   post_id: string;
   author_id: string;
-  author?: { display_name: string | null } | null;
+  author?: { display_name: string | null }[] | null;
   body: string;
   created_at: string;
 };

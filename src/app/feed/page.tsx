@@ -68,7 +68,7 @@ export default async function FeedPage() {
               </p>
               <div className="mt-4 flex items-center gap-4 text-xs text-zinc-500">
                 <span>
-                  작성자 · {post.author?.display_name ?? post.id.slice(0, 6)}
+                  작성자 · {post.author?.[0]?.display_name ?? post.id.slice(0, 6)}
                 </span>
                 <span>공감 32</span>
                 <span>댓글 12</span>

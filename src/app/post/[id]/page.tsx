@@ -43,7 +43,7 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
           {post.title}
         </h1>
         <p className="text-sm text-zinc-600">
-          작성자 · {post.author?.display_name ?? post.author_id.slice(0, 6)}
+          작성자 · {post.author?.[0]?.display_name ?? post.author_id.slice(0, 6)}
         </p>
         <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
           <span>공감 32</span>
@@ -75,7 +75,8 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
               className="rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-xs text-zinc-600"
             >
               <p className="text-[11px] font-semibold text-[var(--cocoa)]">
-                {comment.author?.display_name ?? comment.author_id.slice(0, 6)}
+                {comment.author?.[0]?.display_name ??
+                  comment.author_id.slice(0, 6)}
               </p>
               <p className="mt-1">{comment.body}</p>
             </div>
