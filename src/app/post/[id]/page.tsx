@@ -3,16 +3,17 @@ import { getPostById, listComments } from "@/lib/posts";
 export const runtime = "edge";
 
 type PostDetailProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export default async function PostDetailPage({ params }: PostDetailProps) {
-  const post = await getPostById(params.id).catch((error) => {
+  const { id } = await params;
+  const post = await getPostById(id).catch((error) => {
     console.error("post getPostById failed", error);
     return null;
   });
   const comments = post
-    ? await listComments(params.id, 100).catch((error) => {
+    ? await listComments(id, 100).catch((error) => {
         console.error("post listComments failed", error);
         return [];
       })

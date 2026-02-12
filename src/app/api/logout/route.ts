@@ -26,7 +26,27 @@ function buildCookie(name: string, secure: boolean) {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const callbackUrl = url.searchParams.get("callbackUrl") ?? "/";
-  const response = NextResponse.redirect(callbackUrl);
+  const redirectUrl = new URL("/", url.origin);
+
+  if (callbackUrl.startsWith("/")) {
+    const parsed = new URL(callbackUrl, url.origin);
+    redirectUrl.pathname = parsed.pathname;
+    redirectUrl.search = parsed.search;
+    redirectUrl.hash = parsed.hash;
+  } else {
+    try {
+      const parsed = new URL(callbackUrl);
+      if (parsed.origin === url.origin) {
+        redirectUrl.pathname = parsed.pathname;
+        redirectUrl.search = parsed.search;
+        redirectUrl.hash = parsed.hash;
+      }
+    } catch {
+      // Ignore invalid callbackUrl and use root fallback.
+    }
+  }
+
+  const response = NextResponse.redirect(redirectUrl);
 
   COOKIES.forEach((name) => {
     response.headers.append("Set-Cookie", buildCookie(name, true));
