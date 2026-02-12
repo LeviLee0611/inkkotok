@@ -34,13 +34,21 @@ export async function listPosts(limit = 20) {
 
 export async function getPostById(id: string) {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("posts")
     .select(
       "id, title, lounge, body, author_id, created_at, author:profiles(display_name)"
     )
     .eq("id", id)
     .maybeSingle();
+
+  if (error) {
+    ({ data, error } = await supabase
+      .from("posts")
+      .select("id, title, lounge, body, author_id, created_at")
+      .eq("id", id)
+      .maybeSingle());
+  }
 
   if (error) throw error;
   return data;
