@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 export type PostRecord = {
   id: string;
   author_id: string;
+  author?: { display_name: string | null } | null;
   title: string;
   body: string;
   lounge: string;
@@ -14,6 +15,7 @@ export type CommentRecord = {
   id: string;
   post_id: string;
   author_id: string;
+  author?: { display_name: string | null } | null;
   body: string;
   created_at: string;
 };
@@ -22,7 +24,7 @@ export async function listPosts(limit = 20) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("posts")
-    .select("id, title, lounge, body, created_at")
+    .select("id, title, lounge, body, created_at, author:profiles(display_name)")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -34,7 +36,9 @@ export async function getPostById(id: string) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("posts")
-    .select("id, title, lounge, body, author_id, created_at")
+    .select(
+      "id, title, lounge, body, author_id, created_at, author:profiles(display_name)"
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -46,7 +50,7 @@ export async function listComments(postId: string, limit = 50) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("comments")
-    .select("id, post_id, author_id, body, created_at")
+    .select("id, post_id, author_id, body, created_at, author:profiles(display_name)")
     .eq("post_id", postId)
     .order("created_at", { ascending: true })
     .limit(limit);

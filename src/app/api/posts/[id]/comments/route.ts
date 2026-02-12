@@ -1,4 +1,5 @@
 import { createComment, listComments } from "@/lib/posts";
+import { getUserIdFromRequest } from "@/lib/auth";
 
 export const runtime = "edge";
 
@@ -14,26 +15,30 @@ export async function GET(_request: Request, context: RouteContext) {
 
 export async function POST(request: Request, context: RouteContext) {
   const { id } = await context.params;
+  const userId = await getUserIdFromRequest(request);
+  if (!userId) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await request.json().catch(() => null);
   if (!body) {
     return Response.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const { authorId, content } = body as {
-    authorId?: string;
+  const { content } = body as {
     content?: string;
   };
 
-  if (!authorId || !content) {
+  if (!content) {
     return Response.json(
-      { error: "authorId and content are required." },
+      { error: "content is required." },
       { status: 400 }
     );
   }
 
   const commentId = await createComment({
     postId: id,
-    authorId,
+    authorId: userId,
     body: content,
   });
 

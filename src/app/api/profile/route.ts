@@ -1,35 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
-
+import { getUserIdFromRequest } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { validateUsername } from "@/lib/username";
 
 export const runtime = "edge";
 
-const SECURE_COOKIE = "__Secure-authjs.session-token";
-const DEV_COOKIE = "authjs.session-token";
-
-async function getUserId(request: NextRequest) {
-  const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
-  if (!secret) return null;
-
-  const token =
-    (await getToken({
-      req: request,
-      secret,
-      cookieName: SECURE_COOKIE,
-    })) ??
-    (await getToken({
-      req: request,
-      secret,
-      cookieName: DEV_COOKIE,
-    }));
-
-  return token?.sub ?? null;
-}
-
 export async function GET(request: NextRequest) {
-  const userId = await getUserId(request);
+  const userId = await getUserIdFromRequest(request);
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -49,7 +26,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const userId = await getUserId(request);
+  const userId = await getUserIdFromRequest(request);
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -69,7 +46,7 @@ export async function PATCH(request: NextRequest) {
   const { data: existing, error: existingError } = await supabase
     .from("profiles")
     .select("id")
-    .eq("display_name", username)
+    .ilike("display_name", username)
     .maybeSingle();
 
   if (existingError) {
@@ -83,13 +60,55 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-  const { error: updateError } = await supabase
+  const nowIso = new Date().toISOString();
+
+  const { data: profileData, error: profileError } = await supabase
     .from("profiles")
-    .update({
-      display_name: username,
-      last_seen_at: new Date().toISOString(),
-    })
-    .eq("id", userId);
+    .select("id, nickname_updated_at")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (profileError) {
+    return NextResponse.json({ error: "Profile lookup failed." }, { status: 500 });
+  }
+
+  if (profileData?.nickname_updated_at) {
+    const lastChange = new Date(profileData.nickname_updated_at);
+    const diffMs = Date.now() - lastChange.getTime();
+    const limitMs = 30 * 24 * 60 * 60 * 1000;
+    if (diffMs < limitMs) {
+      const nextDate = new Date(lastChange.getTime() + limitMs);
+      return NextResponse.json(
+        {
+          error: `닉네임은 30일에 1회만 변경할 수 있어요. (${nextDate.toLocaleDateString("ko-KR")} 이후 가능)`,
+        },
+        { status: 429 }
+      );
+    }
+  }
+
+  let updateError = (
+    await supabase
+      .from("profiles")
+      .update({
+        display_name: username,
+        nickname_updated_at: nowIso,
+        last_seen_at: nowIso,
+      })
+      .eq("id", userId)
+  ).error;
+
+  if (updateError?.message?.includes("nickname_updated_at")) {
+    updateError = (
+      await supabase
+        .from("profiles")
+        .update({
+          display_name: username,
+          last_seen_at: nowIso,
+        })
+        .eq("id", userId)
+    ).error;
+  }
 
   if (updateError) {
     return NextResponse.json({ error: "Update failed." }, { status: 500 });

@@ -113,9 +113,9 @@ export default function UserPanel() {
           <p className="text-sm font-semibold text-[var(--ink)]">
             로그인 후 닉네임을 설정할 수 있어요.
           </p>
-          <p className="mt-1 text-xs text-zinc-500">
-            닉네임은 2~16자, 한글/영문/숫자/밑줄만 가능합니다.
-          </p>
+        <p className="mt-1 text-xs text-zinc-500">
+          닉네임은 2~16자, 한글/영문/숫자/밑줄만 가능합니다. 30일에 1회 변경.
+        </p>
         </div>
         <a
           className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
@@ -177,7 +177,7 @@ export default function UserPanel() {
         <p className="mt-3 text-xs text-zinc-500">{message}</p>
       ) : (
         <p className="mt-3 text-xs text-zinc-500">
-          부적절한 단어는 사용할 수 없어요.
+          부적절한 단어는 사용할 수 없어요. 닉네임 변경은 30일에 1회.
         </p>
       )}
     </div>

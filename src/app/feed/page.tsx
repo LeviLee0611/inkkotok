@@ -67,9 +67,11 @@ export default async function FeedPage() {
                 {toExcerpt(post.body)}
               </p>
               <div className="mt-4 flex items-center gap-4 text-xs text-zinc-500">
+                <span>
+                  작성자 · {post.author?.display_name ?? post.id.slice(0, 6)}
+                </span>
                 <span>공감 32</span>
                 <span>댓글 12</span>
-                <span>방금 전</span>
               </div>
             </article>
           ))}
