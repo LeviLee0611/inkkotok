@@ -11,20 +11,26 @@ const COOKIES = [
   "__Secure-authjs.pkce.code_verifier",
 ];
 
+function buildCookie(name: string, secure: boolean) {
+  const parts = [
+    `${name}=`,
+    "Path=/",
+    "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+    "Max-Age=0",
+    "SameSite=Lax",
+  ];
+  if (secure) parts.push("Secure");
+  return parts.join("; ");
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const callbackUrl = url.searchParams.get("callbackUrl") ?? "/";
   const response = NextResponse.redirect(callbackUrl);
 
   COOKIES.forEach((name) => {
-    response.cookies.set({
-      name,
-      value: "",
-      maxAge: 0,
-      path: "/",
-      sameSite: "lax",
-      secure: true,
-    });
+    response.headers.append("Set-Cookie", buildCookie(name, true));
+    response.headers.append("Set-Cookie", buildCookie(name, false));
   });
 
   return response;
