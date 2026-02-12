@@ -25,13 +25,17 @@ const authConfig: AuthConfig = {
     async jwt({ token, account }) {
       const subject = token.sub ?? (token as { id?: string }).id;
       if (account?.provider && subject) {
-        const displayName = await upsertProfile({
-          id: subject,
-          email: token.email,
-          image: token.picture,
-          provider: account.provider,
-        });
-        token.nickname = displayName;
+        try {
+          const displayName = await upsertProfile({
+            id: subject,
+            email: token.email,
+            image: token.picture,
+            provider: account.provider,
+          });
+          token.nickname = displayName;
+        } catch (error) {
+          console.error("profile upsert failed", error);
+        }
       }
       return token;
     },
