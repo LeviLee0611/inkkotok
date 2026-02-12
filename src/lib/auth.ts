@@ -1,5 +1,7 @@
 import { getToken } from "@auth/core/jwt";
-import type { NextRequest } from "next/server";
+type HeaderCarrier = {
+  headers: Headers | Record<string, string>;
+};
 
 const COOKIE_NAMES = [
   "__Host-authjs.session-token",
@@ -7,16 +9,14 @@ const COOKIE_NAMES = [
   "authjs.session-token",
 ];
 
-export async function getUserIdFromRequest(request: Request | NextRequest) {
+export async function getUserIdFromRequest(request: HeaderCarrier) {
   const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
   if (!secret) return null;
 
   const headers =
-    request instanceof Request
+    request.headers instanceof Headers
       ? request.headers
-      : request.headers instanceof Headers
-        ? request.headers
-        : new Headers(request.headers as unknown as HeadersInit);
+      : new Headers(request.headers);
 
   const req = { headers };
 
