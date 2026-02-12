@@ -7,8 +7,16 @@ type PostDetailProps = {
 };
 
 export default async function PostDetailPage({ params }: PostDetailProps) {
-  const post = await getPostById(params.id);
-  const comments = post ? await listComments(params.id, 100) : [];
+  const post = await getPostById(params.id).catch((error) => {
+    console.error("post getPostById failed", error);
+    return null;
+  });
+  const comments = post
+    ? await listComments(params.id, 100).catch((error) => {
+        console.error("post listComments failed", error);
+        return [];
+      })
+    : [];
 
   if (!post) {
     return (

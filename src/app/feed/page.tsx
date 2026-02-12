@@ -9,7 +9,10 @@ function toExcerpt(text: string, limit = 120) {
 }
 
 export default async function FeedPage() {
-  const feed = await listPosts(30);
+  const feed = await listPosts(30).catch((error) => {
+    console.error("feed listPosts failed", error);
+    return [];
+  });
   return (
     <div className="min-h-screen px-6 pb-20 pt-10 md:px-12">
       <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-[var(--shadow)]">
