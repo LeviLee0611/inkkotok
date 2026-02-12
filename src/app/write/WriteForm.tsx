@@ -37,12 +37,16 @@ export default function WriteForm() {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/auth/session");
+        const res = await fetch("/api/auth/session", {
+          credentials: "include",
+        });
         const data = (await res.json()) as SessionResponse;
         if (!cancelled) setSession(data);
 
         if (data?.user?.id) {
-          const profileRes = await fetch("/api/profile");
+          const profileRes = await fetch("/api/profile", {
+            credentials: "include",
+          });
           const profileData = (await profileRes.json()) as {
             profile?: { display_name?: string | null; nickname_updated_at?: string | null };
           };
@@ -80,6 +84,7 @@ export default function WriteForm() {
           lounge,
           content: content.trim(),
         }),
+        credentials: "include",
       });
 
       const data = (await res.json()) as { id?: string; error?: string };

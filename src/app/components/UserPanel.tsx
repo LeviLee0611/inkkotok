@@ -39,13 +39,17 @@ export default function UserPanel() {
       setLoading(true);
       setMessage(null);
       try {
-        const sessionRes = await fetch("/api/auth/session");
+        const sessionRes = await fetch("/api/auth/session", {
+          credentials: "include",
+        });
         const sessionData = (await sessionRes.json()) as SessionResponse;
         if (cancelled) return;
         setSession(sessionData);
 
         if (sessionData?.user?.id) {
-          const profileRes = await fetch("/api/profile");
+          const profileRes = await fetch("/api/profile", {
+            credentials: "include",
+          });
           const profileData = (await profileRes.json()) as ProfileResponse;
           if (cancelled) return;
           setProfile(profileData.profile ?? null);
@@ -79,6 +83,7 @@ export default function UserPanel() {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ username }),
+        credentials: "include",
       });
       const data = (await res.json()) as { error?: string; username?: string };
 
