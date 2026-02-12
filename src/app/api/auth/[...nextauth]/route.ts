@@ -5,22 +5,17 @@ import { upsertProfile } from "@/lib/profile";
 
 export const runtime = "edge";
 
-const providers = [
-  Google({
-    clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-  }),
-];
-
 const authConfig: AuthConfig = {
   basePath: "/api/auth",
-  providers,
+  providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    }),
+  ],
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
-  trustHost: process.env.AUTH_TRUST_HOST === "true",
   session: { strategy: "jwt" },
-  pages: {
-    signIn: "/auth",
-  },
+  pages: { signIn: "/auth" },
   callbacks: {
     async jwt({ token, account }) {
       const subject = token.sub ?? (token as { id?: string }).id;
@@ -50,6 +45,11 @@ const authConfig: AuthConfig = {
       }
       return session;
     },
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (url.startsWith(baseUrl)) return url;
+      return `${baseUrl}/feed`;
+    },
   },
 };
 
@@ -66,48 +66,9 @@ function parseActionAndProviderId(pathname: string, base: string) {
 
 const handler = async (request: Request) => {
   const url = new URL(request.url);
-  if (url.searchParams.get("debug") === "2") {
-    return new Response(
-      JSON.stringify({
-        requestUrl: url.toString(),
-        requestPath: url.pathname,
-        requestQuery: Object.fromEntries(url.searchParams.entries()),
-      }),
-      { status: 200, headers: { "content-type": "application/json" } }
-    );
-  }
-  const nextauth = url.searchParams.get("nextauth");
-  const originalPath = url.pathname;
-  if (nextauth) {
-    const basePath = authConfig.basePath ?? "/auth";
-    const actionPath = nextauth.replace(/^\//, "");
-    url.pathname = `${basePath}/${actionPath}`;
-    url.searchParams.delete("nextauth");
-    request = new Request(url, request);
-  }
-  if (url.searchParams.get("debug") === "4") {
-    let parsed: { action?: string; providerId?: string; error?: string } = {};
-    try {
-      parsed = parseActionAndProviderId(
-        url.pathname,
-        authConfig.basePath ?? "/auth"
-      );
-    } catch (error) {
-      parsed.error = error instanceof Error ? error.message : String(error);
-    }
-    return new Response(
-      JSON.stringify({
-        originalPath,
-        rewrittenPath: url.pathname,
-        basePath: authConfig.basePath ?? null,
-        nextauth,
-        parsed,
-      }),
-      { status: 200, headers: { "content-type": "application/json" } }
-    );
-  }
   let authRequest = request;
   let authOptions: AuthConfig = authConfig;
+
   try {
     const parsed = parseActionAndProviderId(
       url.pathname,
@@ -122,61 +83,9 @@ const handler = async (request: Request) => {
       authOptions = { ...authConfig, skipCSRFCheck };
     }
   } catch {
-    // fall through to Auth for error handling
+    // fall through to Auth.js error handling
   }
-  if (url.searchParams.get("debug") === "3") {
-    const logs: { level: string; message: string }[] = [];
-    const logger = {
-      error: (message: unknown) => {
-        logs.push({
-          level: "error",
-          message: message instanceof Error ? message.message : String(message),
-        });
-      },
-      warn: (message: unknown) => {
-        logs.push({
-          level: "warn",
-          message: message instanceof Error ? message.message : String(message),
-        });
-      },
-      debug: (message: unknown) => {
-        logs.push({
-          level: "debug",
-          message: message instanceof Error ? message.message : String(message),
-        });
-      },
-    };
-    const response = await Auth(authRequest, { ...authOptions, logger, debug: true });
-    const bodyText = await response.text();
-    const location = response.headers.get("location");
-    return new Response(
-      JSON.stringify({
-        status: response.status,
-        statusText: response.statusText,
-        location,
-        body: bodyText,
-        logs,
-      }),
-      { status: 200, headers: { "content-type": "application/json" } }
-    );
-  }
-  if (url.searchParams.get("debug") === "1") {
-    let parsed: { action?: string; providerId?: string; error?: string } = {};
-    try {
-      parsed = parseActionAndProviderId(url.pathname, authConfig.basePath ?? "/auth");
-    } catch (error) {
-      parsed.error = error instanceof Error ? error.message : String(error);
-    }
-    return new Response(
-      JSON.stringify({
-        requestUrl: url.toString(),
-        requestPath: url.pathname,
-        basePath: authConfig.basePath ?? null,
-        parsed,
-      }),
-      { status: 200, headers: { "content-type": "application/json" } }
-    );
-  }
+
   return Auth(authRequest, authOptions);
 };
 
