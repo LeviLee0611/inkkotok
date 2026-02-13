@@ -1,4 +1,5 @@
 import { getToken } from "@auth/core/jwt";
+import { verifyFirebaseBearer } from "@/lib/firebase-auth";
 type HeaderCarrier = {
   headers: Headers | Record<string, string>;
 };
@@ -8,6 +9,7 @@ const COOKIE_NAMES = [
   "__Secure-authjs.session-token",
   "authjs.session-token",
 ];
+const COOKIE_SALTS = ["authjs.session-token", ...COOKIE_NAMES];
 
 type AuthUser = {
   id: string;
@@ -26,6 +28,14 @@ export function isAdminEmail(email: string | null | undefined) {
 }
 
 export async function getUserFromRequest(request: HeaderCarrier): Promise<AuthUser | null> {
+  const firebaseUser = await verifyFirebaseBearer(request.headers);
+  if (firebaseUser) {
+    return {
+      id: firebaseUser.uid,
+      email: firebaseUser.email,
+    };
+  }
+
   const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
   if (!secret) return null;
 
@@ -37,18 +47,38 @@ export async function getUserFromRequest(request: HeaderCarrier): Promise<AuthUs
   const req = { headers };
 
   for (const cookieName of COOKIE_NAMES) {
-    const token = await getToken({
-      req,
-      secret,
-      cookieName,
-      salt: cookieName,
-      secureCookie: cookieName.startsWith("__Secure") || cookieName.startsWith("__Host"),
-    });
-    if (token?.sub) {
-      return {
-        id: token.sub,
-        email: typeof token.email === "string" ? token.email : null,
-      };
+    for (const salt of COOKIE_SALTS) {
+      const token = await getToken({
+        req,
+        secret,
+        cookieName,
+        salt,
+        secureCookie: cookieName.startsWith("__Secure") || cookieName.startsWith("__Host"),
+      });
+      if (token?.sub) {
+        return {
+          id: token.sub,
+          email: typeof token.email === "string" ? token.email : null,
+        };
+      }
+    }
+  }
+
+  // Fallback to Auth.js defaults in case cookie naming differs by environment.
+  for (const secureCookie of [true, false]) {
+    for (const salt of COOKIE_SALTS) {
+      const token = await getToken({
+        req,
+        secret,
+        secureCookie,
+        salt,
+      });
+      if (token?.sub) {
+        return {
+          id: token.sub,
+          email: typeof token.email === "string" ? token.email : null,
+        };
+      }
     }
   }
 

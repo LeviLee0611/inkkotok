@@ -1,16 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { authFetch } from "@/lib/auth-fetch";
+import { firebaseAuth } from "@/lib/firebase-client";
+
 type SessionUser = {
   id?: string;
   name?: string | null;
   email?: string | null;
   image?: string | null;
-  nickname?: string | null;
-};
-
-type SessionResponse = {
-  user?: SessionUser | null;
 };
 
 type ProfileResponse = {
@@ -19,33 +18,23 @@ type ProfileResponse = {
 
 export default function AppMenu() {
   const [open, setOpen] = useState(false);
-  const [session, setSession] = useState<SessionResponse | null>(null);
+  const [user, setUser] = useState<SessionUser | null>(null);
   const [profile, setProfile] = useState<ProfileResponse["profile"] | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    const load = async () => {
+    const loadProfile = async () => {
       try {
-        const sessionRes = await fetch("/api/auth/session", {
-          credentials: "include",
+        const profileRes = await authFetch("/api/profile", {
           cache: "no-store",
         });
-        const sessionData = (await sessionRes.json()) as SessionResponse;
-        if (cancelled) return;
-        setSession(sessionData);
-
-        if (sessionData?.user?.id) {
-          const profileRes = await fetch("/api/profile", {
-            credentials: "include",
-            cache: "no-store",
-          });
-          const profileData = (await profileRes.json()) as ProfileResponse;
-          if (!cancelled) setProfile(profileData.profile ?? null);
-        }
+        if (!profileRes.ok) return;
+        const profileData = (await profileRes.json()) as ProfileResponse;
+        if (!cancelled) setProfile(profileData.profile ?? null);
       } catch {
-        if (!cancelled) setSession(null);
+        if (!cancelled) setProfile(null);
       }
     };
 
@@ -56,27 +45,33 @@ export default function AppMenu() {
       setProfile((prev) =>
         prev ? { ...prev, display_name: nickname } : { display_name: nickname }
       );
-      setSession((prev) => {
-        if (!prev?.user) return prev;
-        return {
-          ...prev,
-          user: { ...prev.user, name: nickname, nickname },
-        };
+      setUser((prev) => (prev ? { ...prev, name: nickname } : prev));
+    };
+
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (authUser) => {
+      if (cancelled) return;
+      if (!authUser) {
+        setUser(null);
+        setProfile(null);
+        return;
+      }
+
+      setUser({
+        id: authUser.uid,
+        name: authUser.displayName,
+        email: authUser.email,
+        image: authUser.photoURL,
       });
-    };
+      void authFetch("/api/auth/sync", { method: "POST" });
+      void loadProfile();
+    });
 
-    const onWindowFocus = () => {
-      void load();
-    };
-
-    void load();
     window.addEventListener("nickname-updated", onNicknameUpdated);
-    window.addEventListener("focus", onWindowFocus);
 
     return () => {
       cancelled = true;
+      unsubscribe();
       window.removeEventListener("nickname-updated", onNicknameUpdated);
-      window.removeEventListener("focus", onWindowFocus);
     };
   }, []);
 
@@ -95,8 +90,8 @@ export default function AppMenu() {
 
   const label =
     profile?.display_name ||
-    session?.user?.name ||
-    session?.user?.email ||
+    user?.name ||
+    user?.email ||
     "계정";
 
   return (
@@ -104,7 +99,7 @@ export default function AppMenu() {
       ref={containerRef}
       className="fixed right-6 top-6 z-50 flex items-center"
     >
-      {session?.user ? (
+      {user ? (
         <button
           className="flex items-center gap-2 rounded-full border border-[var(--border-soft)] bg-white/90 px-3 py-2 text-xs font-semibold text-[var(--ink)] shadow-sm"
           type="button"
@@ -146,7 +141,9 @@ export default function AppMenu() {
             className="mt-1 w-full rounded-xl px-3 py-2 text-left text-[var(--cocoa)] hover:bg-[var(--paper)]"
             type="button"
             onClick={() => {
-              window.location.assign("/api/logout?callbackUrl=/");
+              void signOut(firebaseAuth).finally(() => {
+                window.location.assign("/");
+              });
             }}
           >
             로그아웃

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { authFetch } from "@/lib/auth-fetch";
 
 type ProfileResponse = {
   isAdmin?: boolean;
@@ -10,7 +11,7 @@ let adminStatusPromise: Promise<boolean> | null = null;
 
 function loadAdminStatus() {
   if (!adminStatusPromise) {
-    adminStatusPromise = fetch("/api/profile", { credentials: "include" })
+    adminStatusPromise = authFetch("/api/profile")
       .then(async (res) => {
         if (!res.ok) return false;
         const data = (await res.json()) as ProfileResponse;
@@ -62,10 +63,9 @@ export function PostAdminActions({
 
     setWorking(true);
     try {
-      const res = await fetch(`/api/posts/${postId}`, {
+      const res = await authFetch(`/api/posts/${postId}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           title: nextTitle,
           lounge: nextLounge,
@@ -89,9 +89,8 @@ export function PostAdminActions({
 
     setWorking(true);
     try {
-      const res = await fetch(`/api/posts/${postId}`, {
+      const res = await authFetch(`/api/posts/${postId}`, {
         method: "DELETE",
-        credentials: "include",
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -143,10 +142,9 @@ export function CommentAdminActions({
 
     setWorking(true);
     try {
-      const res = await fetch(`/api/comments/${commentId}`, {
+      const res = await authFetch(`/api/comments/${commentId}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ content: nextBody }),
       });
       if (!res.ok) {
@@ -166,9 +164,8 @@ export function CommentAdminActions({
 
     setWorking(true);
     try {
-      const res = await fetch(`/api/comments/${commentId}`, {
+      const res = await authFetch(`/api/comments/${commentId}`, {
         method: "DELETE",
-        credentials: "include",
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;

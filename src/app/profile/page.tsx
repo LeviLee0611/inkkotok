@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import UserPanel from "@/app/components/UserPanel";
+import { authFetch } from "@/lib/auth-fetch";
 
 type ProfileStats = {
   profile?: {
@@ -26,7 +27,7 @@ export default function ProfilePage() {
 
     const load = async () => {
       try {
-        const res = await fetch("/api/profile/stats", { credentials: "include" });
+        const res = await authFetch("/api/profile/stats");
         const json = (await res.json()) as ProfileStats;
         if (!cancelled) setData(json);
       } catch {

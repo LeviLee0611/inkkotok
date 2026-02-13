@@ -1,87 +1,33 @@
-# Auth.js + Supabase Data Model
+# Firebase Auth + Supabase Data Model
 
 ## Goals
 - Anyone can read posts and comments without logging in.
-- Writing posts/comments requires login (Google, Microsoft, Naver, Kakao).
-- Users remain anonymous; only a generated nickname is shown.
+- Writing posts/comments requires Firebase login.
+- Google 로그인은 유지하고, 이메일 없는 사용자는 Anonymous Auth로 가입/로그인.
+- 익명 계정은 이후 Google 계정으로 링크(link) 업그레이드 가능.
 
-## Auth Providers
-- Google
-- Microsoft (Azure AD)
-- Naver
-- Kakao
+## Providers
+- Google OAuth
+- Anonymous Auth
 
-## Auth Flow (MVP)
-1. User clicks "Login" on `/auth`.
-2. OAuth flow via Auth.js (NextAuth).
-3. On first login, create a profile record in Supabase:
-   - `display_name` generated
-   - `created_at`, `last_seen_at`
-   - `providers` list
-4. Client uses session `user.id` for writes.
+## Auth Flow
+1. User signs in with Google or Anonymous in the client.
+2. Client gets Firebase ID token.
+3. Client calls `POST /api/auth/sync` with `Authorization: Bearer <idToken>`.
+4. Server verifies the token and upserts `users` by `firebase_uid`.
+5. Server ensures `user_profiles` row exists.
+6. Protected APIs use the same token verification middleware.
+7. `GET /api/me` returns `users + user_profiles`.
 
-## Supabase Tables
+## Server-side Rules
+- `role`, `status`, `deleted_at` are server-managed only.
+- Client `uid/email/role/status` input is never trusted.
+- Soft delete uses `deleted_at` instead of hard delete.
 
-### `profiles`
-Anonymous user profile.
-- `id` (text, primary key) - auth subject
-- `display_name` (text)
-- `email` (text, nullable)
-- `image_url` (text, nullable)
-- `providers` (text[])
-- `status` (text: `active` | `suspended`)
-- `created_at` (timestamptz)
-- `last_seen_at` (timestamptz)
+## Tables
+- `users`: authentication-linked account record (firebase uid, provider, email nullable, role/status, soft delete)
+- `user_profiles`: community profile fields
+- `audit_logs`: admin action log
 
-### `lounges`
-- `id` (uuid, primary key)
-- `title` (text)
-- `type` (text: `generation` | `topic`)
-- `order` (int)
-- `description` (text)
-- `created_at` (timestamptz)
-
-### `posts`
-- `id` (uuid, primary key)
-- `title` (text)
-- `body` (text)
-- `lounge_id` (uuid, references `lounges.id`)
-- `author_id` (text, references `profiles.id`)
-- `author_display_name` (text)
-- `status` (text: `active` | `hidden` | `removed`)
-- `created_at` (timestamptz)
-- `updated_at` (timestamptz)
-- `like_count` (int)
-- `comment_count` (int)
-- `report_count` (int)
-
-### `comments`
-- `id` (uuid, primary key)
-- `post_id` (uuid, references `posts.id`)
-- `body` (text)
-- `author_id` (text, references `profiles.id`)
-- `author_display_name` (text)
-- `status` (text: `active` | `hidden` | `removed`)
-- `created_at` (timestamptz)
-- `updated_at` (timestamptz)
-- `report_count` (int)
-
-### `reports`
-- `id` (uuid, primary key)
-- `target_type` (text: `post` | `comment`)
-- `target_id` (uuid)
-- `reason` (text)
-- `reporter_id` (text, references `profiles.id`)
-- `created_at` (timestamptz)
-
-### `moderation`
-- `id` (uuid, primary key)
-- `target_type` (text)
-- `target_id` (uuid)
-- `action` (text: `hide` | `remove` | `restore`)
-- `actor_id` (text)
-- `created_at` (timestamptz)
-
-## Notes
-- `author_display_name` is stored redundantly for fast reads.
-- Use RLS to prevent client writes to protected fields.
+## SQL
+- Run `docs/sql/firebase-auth-schema.sql` in Supabase SQL editor.
