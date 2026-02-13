@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
 import { authFetch } from "@/lib/auth-fetch";
-import { firebaseAuth } from "@/lib/firebase-client";
+import { useAuthUser } from "@/lib/use-auth-user";
 
 type SessionUser = {
   id?: string;
@@ -26,6 +25,7 @@ type UserPanelProps = {
 };
 
 export default function UserPanel({ redirectTo }: UserPanelProps) {
+  const { user: authUser, loading: authLoading } = useAuthUser({ syncOnSignIn: true });
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [profile, setProfile] = useState<ProfileResponse["profile"] | null>(null);
   const [username, setUsername] = useState("");
@@ -36,29 +36,26 @@ export default function UserPanel({ redirectTo }: UserPanelProps) {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setMessage(null);
 
-    const unsubscribe = onAuthStateChanged(firebaseAuth, async (authUser) => {
-      setLoading(true);
-      setMessage(null);
+    if (!authUser) {
+      setSessionUser(null);
+      setProfile(null);
+      setLoading(authLoading);
+      return () => {
+        cancelled = true;
+      };
+    }
 
-      if (!authUser) {
-        if (!cancelled) {
-          setSessionUser(null);
-          setProfile(null);
-          setLoading(false);
-        }
-        return;
-      }
+    setSessionUser({
+      id: authUser.uid,
+      name: authUser.displayName,
+      email: authUser.email,
+      image: authUser.photoURL,
+    });
 
-      if (!cancelled) {
-        setSessionUser({
-          id: authUser.uid,
-          name: authUser.displayName,
-          email: authUser.email,
-          image: authUser.photoURL,
-        });
-      }
-
+    const loadProfile = async () => {
       try {
         const profileRes = await authFetch("/api/profile", {
           cache: "no-store",
@@ -74,13 +71,14 @@ export default function UserPanel({ redirectTo }: UserPanelProps) {
       } finally {
         if (!cancelled) setLoading(false);
       }
-    });
+    };
+
+    void loadProfile();
 
     return () => {
       cancelled = true;
-      unsubscribe();
     };
-  }, []);
+  }, [authLoading, authUser]);
 
   const onSave = async () => {
     setMessage(null);

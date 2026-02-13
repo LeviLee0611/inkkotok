@@ -19,6 +19,12 @@ export async function GET(request: NextRequest) {
     .eq("id", userId)
     .maybeSingle();
 
+  const { data: userRow } = await supabase
+    .from("users")
+    .select("firebase_uid, display_name, email, photo_url")
+    .eq("firebase_uid", userId)
+    .maybeSingle();
+
   const { count: postCount } = await supabase
     .from("posts")
     .select("id", { count: "exact", head: true })
@@ -37,7 +43,13 @@ export async function GET(request: NextRequest) {
     .limit(5);
 
   return NextResponse.json({
-    profile,
+    profile: {
+      id: userId,
+      display_name:
+        profile?.display_name?.trim() || userRow?.display_name?.trim() || null,
+      email: profile?.email ?? userRow?.email ?? null,
+      image_url: profile?.image_url ?? userRow?.photo_url ?? null,
+    },
     stats: {
       posts: postCount ?? 0,
       comments: commentCount ?? 0,

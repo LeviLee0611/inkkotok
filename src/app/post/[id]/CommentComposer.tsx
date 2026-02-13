@@ -1,26 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { useState } from "react";
 
 import { authFetch } from "@/lib/auth-fetch";
-import { firebaseAuth } from "@/lib/firebase-client";
+import { useAuthUser } from "@/lib/use-auth-user";
 
 export default function CommentComposer({ postId }: { postId: string }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user, loading } = useAuthUser({ syncOnSignIn: true });
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
-      setIsLoggedIn(Boolean(user));
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
 
   const onSubmit = async () => {
     setMessage(null);
@@ -54,13 +43,13 @@ export default function CommentComposer({ postId }: { postId: string }) {
     }
   };
 
-  if (!isLoggedIn) {
+  if (!user) {
     return (
       <a
         className="rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white"
         href="/auth"
       >
-        댓글 작성 (로그인 필요)
+        {loading ? "로그인 확인 중..." : "댓글 작성 (로그인 필요)"}
       </a>
     );
   }

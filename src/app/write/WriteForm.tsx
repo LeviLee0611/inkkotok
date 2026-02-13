@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
 import { authFetch } from "@/lib/auth-fetch";
-import { firebaseAuth } from "@/lib/firebase-client";
+import { useAuthUser } from "@/lib/use-auth-user";
 
 const LOUNGES = [
   "신혼 1-3년",
@@ -20,6 +19,7 @@ type SessionUser = {
 };
 
 export default function WriteForm() {
+  const { user, loading: authLoading } = useAuthUser({ syncOnSignIn: true });
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [profile, setProfile] = useState<{
     display_name?: string | null;
@@ -34,24 +34,24 @@ export default function WriteForm() {
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setMessage(null);
 
-    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
-      if (cancelled) return;
-      setLoading(true);
-      setMessage(null);
+    if (!user) {
+      setSessionUser(null);
+      setProfile(null);
+      setLoading(authLoading);
+      return () => {
+        cancelled = true;
+      };
+    }
 
-      if (!user) {
-        setSessionUser(null);
-        setProfile(null);
-        setLoading(false);
-        return;
-      }
+    setSessionUser({
+      id: user.uid,
+      email: user.email ?? null,
+    });
 
-      setSessionUser({
-        id: user.uid,
-        email: user.email ?? null,
-      });
-
+    const loadProfile = async () => {
       try {
         const profileRes = await authFetch("/api/profile", {
           cache: "no-store",
@@ -67,13 +67,14 @@ export default function WriteForm() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-    });
+    };
+
+    void loadProfile();
 
     return () => {
       cancelled = true;
-      unsubscribe();
     };
-  }, []);
+  }, [authLoading, user]);
 
   const onSubmit = async () => {
     setMessage(null);

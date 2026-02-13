@@ -1,16 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { signOut } from "firebase/auth";
 import { authFetch } from "@/lib/auth-fetch";
 import { firebaseAuth } from "@/lib/firebase-client";
-
-type SessionUser = {
-  id?: string;
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
-};
+import { useAuthUser } from "@/lib/use-auth-user";
 
 type ProfileResponse = {
   profile?: { display_name: string | null } | null;
@@ -18,7 +12,7 @@ type ProfileResponse = {
 
 export default function AppMenu() {
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<SessionUser | null>(null);
+  const { user: authUser } = useAuthUser({ syncOnSignIn: true });
   const [profile, setProfile] = useState<ProfileResponse["profile"] | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -45,35 +39,19 @@ export default function AppMenu() {
       setProfile((prev) =>
         prev ? { ...prev, display_name: nickname } : { display_name: nickname }
       );
-      setUser((prev) => (prev ? { ...prev, name: nickname } : prev));
     };
 
-    const unsubscribe = onAuthStateChanged(firebaseAuth, (authUser) => {
-      if (cancelled) return;
-      if (!authUser) {
-        setUser(null);
-        setProfile(null);
-        return;
-      }
-
-      setUser({
-        id: authUser.uid,
-        name: authUser.displayName,
-        email: authUser.email,
-        image: authUser.photoURL,
-      });
-      void authFetch("/api/auth/sync", { method: "POST" });
+    if (authUser) {
       void loadProfile();
-    });
+    }
 
     window.addEventListener("nickname-updated", onNicknameUpdated);
 
     return () => {
       cancelled = true;
-      unsubscribe();
       window.removeEventListener("nickname-updated", onNicknameUpdated);
     };
-  }, []);
+  }, [authUser]);
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
@@ -90,8 +68,8 @@ export default function AppMenu() {
 
   const label =
     profile?.display_name ||
-    user?.name ||
-    user?.email ||
+    authUser?.displayName ||
+    authUser?.email ||
     "계정";
 
   return (
@@ -99,7 +77,7 @@ export default function AppMenu() {
       ref={containerRef}
       className="fixed right-6 top-6 z-50 flex items-center"
     >
-      {user ? (
+      {authUser ? (
         <button
           className="flex items-center gap-2 rounded-full border border-[var(--border-soft)] bg-white/90 px-3 py-2 text-xs font-semibold text-[var(--ink)] shadow-sm"
           type="button"

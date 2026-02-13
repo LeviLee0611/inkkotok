@@ -14,14 +14,14 @@ export async function GET(request: NextRequest) {
   const userId = user.id;
 
   const supabase = getSupabaseAdmin();
-  let { data, error } = await supabase
+  let { data: profileData, error } = await supabase
     .from("profiles")
     .select("id, display_name, email, image_url, providers, nickname_updated_at")
     .eq("id", userId)
     .maybeSingle();
 
   if (error) {
-    ({ data, error } = await supabase
+    ({ data: profileData, error } = await supabase
       .from("profiles")
       .select("id, display_name, email, image_url, providers")
       .eq("id", userId)
@@ -36,9 +36,36 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const { data: userData } = await supabase
+    .from("users")
+    .select("firebase_uid, display_name, email, photo_url")
+    .eq("firebase_uid", userId)
+    .maybeSingle();
+
+  const resolvedDisplayName =
+    profileData?.display_name?.trim() ||
+    userData?.display_name?.trim() ||
+    null;
+  const resolvedEmail = profileData?.email ?? userData?.email ?? null;
+  const resolvedImage = profileData?.image_url ?? userData?.photo_url ?? null;
+
   return NextResponse.json(
     {
-      profile: data,
+      profile: profileData
+        ? {
+            ...profileData,
+            display_name: resolvedDisplayName,
+            email: resolvedEmail,
+            image_url: resolvedImage,
+          }
+        : {
+            id: userId,
+            display_name: resolvedDisplayName,
+            email: resolvedEmail,
+            image_url: resolvedImage,
+            providers: [user.provider],
+            nickname_updated_at: null,
+          },
       isAdmin: isAdminEmail(user.email),
     },
     {
