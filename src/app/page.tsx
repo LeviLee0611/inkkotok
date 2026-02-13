@@ -2,6 +2,8 @@ type HomePageProps = {
   searchParams: Promise<{ loggedOut?: string }>;
 };
 
+export const runtime = "edge";
+
 export default async function Home({ searchParams }: HomePageProps) {
   const params = await searchParams;
   const loggedOut = params.loggedOut === "1";
