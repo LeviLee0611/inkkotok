@@ -1,5 +1,6 @@
 import { getPostById, listComments } from "@/lib/posts";
 import { CommentAdminActions, PostAdminActions } from "./AdminActions";
+import CommentComposer from "./CommentComposer";
 
 export const runtime = "edge";
 
@@ -69,12 +70,7 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
       <section className="mx-auto mt-6 w-full max-w-5xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <h2 className="text-lg font-semibold text-[var(--ink)]">댓글</h2>
-          <a
-            className="rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white"
-            href="/auth"
-          >
-            댓글 작성 (로그인 필요)
-          </a>
+          <CommentComposer postId={id} />
         </div>
         <div className="mt-4 grid gap-3">
           {comments.map((comment) => (

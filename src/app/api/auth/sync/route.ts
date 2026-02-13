@@ -14,22 +14,44 @@ export async function POST(request: NextRequest) {
   const supabase = getSupabaseAdmin();
   const nowIso = new Date().toISOString();
 
-  const { data: existing, error: existingError } = await supabase
+  const { data: existingUser, error: existingUserError } = await supabase
     .from("users")
-    .select("id, deleted_at")
+    .select("id, deleted_at, display_name, email, photo_url")
     .eq("firebase_uid", firebaseUser.uid)
     .maybeSingle();
 
-  if (existingError) {
+  if (existingUserError) {
     return NextResponse.json({ error: "Sync failed." }, { status: 500 });
   }
 
-  if (existing?.deleted_at) {
+  if (existingUser?.deleted_at) {
     return NextResponse.json(
       { error: "삭제된 계정입니다. 복구가 필요해요." },
       { status: 403 }
     );
   }
+
+  const { data: existingProfile } = await supabase
+    .from("profiles")
+    .select("display_name, email, image_url, providers")
+    .eq("id", firebaseUser.uid)
+    .maybeSingle();
+
+  const resolvedDisplayName =
+    existingProfile?.display_name?.trim() ||
+    existingUser?.display_name?.trim() ||
+    firebaseUser.name ||
+    null;
+  const resolvedEmail =
+    firebaseUser.email ?? existingUser?.email ?? existingProfile?.email ?? null;
+  const resolvedPhoto =
+    firebaseUser.picture ??
+    existingUser?.photo_url ??
+    existingProfile?.image_url ??
+    null;
+  const providers = Array.from(
+    new Set([...(existingProfile?.providers ?? []), firebaseUser.provider])
+  );
 
   const { data: user, error: userUpsertError } = await supabase
     .from("users")
@@ -37,9 +59,9 @@ export async function POST(request: NextRequest) {
       {
         firebase_uid: firebaseUser.uid,
         provider: firebaseUser.provider,
-        email: firebaseUser.email,
-        display_name: firebaseUser.name,
-        photo_url: firebaseUser.picture,
+        email: resolvedEmail,
+        display_name: resolvedDisplayName,
+        photo_url: resolvedPhoto,
         last_login_at: nowIso,
         deleted_at: null,
       },
@@ -64,10 +86,10 @@ export async function POST(request: NextRequest) {
     .upsert(
       {
         id: firebaseUser.uid,
-        display_name: firebaseUser.name,
-        email: firebaseUser.email,
-        image_url: firebaseUser.picture,
-        providers: [firebaseUser.provider],
+        display_name: resolvedDisplayName,
+        email: resolvedEmail,
+        image_url: resolvedPhoto,
+        providers,
         last_seen_at: nowIso,
         status: "active",
       },

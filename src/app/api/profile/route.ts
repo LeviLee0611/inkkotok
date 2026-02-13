@@ -153,5 +153,17 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Update failed." }, { status: 500 });
   }
 
+  const { error: usersUpdateError } = await supabase
+    .from("users")
+    .update({
+      display_name: username,
+      last_login_at: nowIso,
+    })
+    .eq("firebase_uid", userId);
+
+  if (usersUpdateError) {
+    console.error("users display_name sync failed", usersUpdateError);
+  }
+
   return NextResponse.json({ username });
 }
