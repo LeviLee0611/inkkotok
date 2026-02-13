@@ -1,4 +1,11 @@
-export default function Home() {
+type HomePageProps = {
+  searchParams: Promise<{ loggedOut?: string }>;
+};
+
+export default async function Home({ searchParams }: HomePageProps) {
+  const params = await searchParams;
+  const loggedOut = params.loggedOut === "1";
+
   return (
     <div className="min-h-screen">
       <header className="px-6 pt-8 md:px-12">
@@ -48,6 +55,11 @@ export default function Home() {
       </header>
 
       <main className="px-6 pb-24 pt-12 md:px-12">
+        {loggedOut ? (
+          <div className="mx-auto mb-6 w-full max-w-6xl rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-sm font-semibold text-[var(--cocoa)]">
+            로그아웃되었습니다.
+          </div>
+        ) : null}
         <section className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="flex flex-col gap-6 rounded-[36px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-[var(--shadow)] md:p-8">
             <div className="flex flex-wrap gap-2 text-xs font-semibold text-[var(--cocoa)]">
@@ -130,7 +142,7 @@ export default function Home() {
               </p>
               <div className="mt-3 grid gap-2 text-xs text-zinc-600">
                 <div className="rounded-2xl bg-[var(--paper)] px-3 py-2">
-                  닉네임 자동 생성, 프로필 기록 없음
+                  닉네임 직접 설정, 계정별 고유 활동명 유지
                 </div>
                 <div className="rounded-2xl bg-[var(--paper)] px-3 py-2">
                   게시물 위치 정보 미수집

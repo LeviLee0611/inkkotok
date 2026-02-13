@@ -46,12 +46,15 @@ export async function GET(request: Request) {
     }
   }
 
-  const response = NextResponse.redirect(redirectUrl);
+  if (redirectUrl.pathname === "/" && !redirectUrl.searchParams.has("loggedOut")) {
+    redirectUrl.searchParams.set("loggedOut", "1");
+  }
+  const finalResponse = NextResponse.redirect(redirectUrl);
 
   COOKIES.forEach((name) => {
-    response.headers.append("Set-Cookie", buildCookie(name, true));
-    response.headers.append("Set-Cookie", buildCookie(name, false));
+    finalResponse.headers.append("Set-Cookie", buildCookie(name, true));
+    finalResponse.headers.append("Set-Cookie", buildCookie(name, false));
   });
 
-  return response;
+  return finalResponse;
 }

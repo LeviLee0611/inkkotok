@@ -30,6 +30,7 @@ export default function AppMenu() {
       try {
         const sessionRes = await fetch("/api/auth/session", {
           credentials: "include",
+          cache: "no-store",
         });
         const sessionData = (await sessionRes.json()) as SessionResponse;
         if (cancelled) return;
@@ -38,6 +39,7 @@ export default function AppMenu() {
         if (sessionData?.user?.id) {
           const profileRes = await fetch("/api/profile", {
             credentials: "include",
+            cache: "no-store",
           });
           const profileData = (await profileRes.json()) as ProfileResponse;
           if (!cancelled) setProfile(profileData.profile ?? null);

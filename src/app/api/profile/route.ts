@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { validateUsername } from "@/lib/username";
 
 export const runtime = "edge";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const user = await getUserFromRequest(request);
@@ -35,10 +36,17 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({
-    profile: data,
-    isAdmin: isAdminEmail(user.email),
-  });
+  return NextResponse.json(
+    {
+      profile: data,
+      isAdmin: isAdminEmail(user.email),
+    },
+    {
+      headers: {
+        "cache-control": "no-store, no-cache, must-revalidate",
+      },
+    }
+  );
 }
 
 export async function PATCH(request: NextRequest) {
@@ -82,7 +90,7 @@ export async function PATCH(request: NextRequest) {
 
   let { data: profileData, error: profileError } = await supabase
     .from("profiles")
-    .select("id, nickname_updated_at")
+    .select("id, display_name, nickname_updated_at")
     .eq("id", userId)
     .maybeSingle();
 
@@ -96,6 +104,13 @@ export async function PATCH(request: NextRequest) {
   }
 
   if (profileData?.nickname_updated_at) {
+    const currentDisplayName =
+      typeof profileData.display_name === "string"
+        ? profileData.display_name.trim()
+        : "";
+    if (!currentDisplayName || currentDisplayName === username) {
+      // Allow initial setup or idempotent save without rate-limit penalty.
+    } else {
     const lastChange = new Date(profileData.nickname_updated_at);
     const diffMs = Date.now() - lastChange.getTime();
     const limitMs = 30 * 24 * 60 * 60 * 1000;
@@ -107,6 +122,7 @@ export async function PATCH(request: NextRequest) {
         },
         { status: 429 }
       );
+    }
     }
   }
 

@@ -39,6 +39,7 @@ export default function WriteForm() {
       try {
         const res = await fetch("/api/auth/session", {
           credentials: "include",
+          cache: "no-store",
         });
         const data = (await res.json()) as SessionResponse;
         if (!cancelled) setSession(data);
@@ -46,6 +47,7 @@ export default function WriteForm() {
         if (data?.user?.id) {
           const profileRes = await fetch("/api/profile", {
             credentials: "include",
+            cache: "no-store",
           });
           const profileData = (await profileRes.json()) as {
             profile?: { display_name?: string | null; nickname_updated_at?: string | null };
