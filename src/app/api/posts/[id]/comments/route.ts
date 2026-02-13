@@ -29,19 +29,27 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const { content } = body as {
     content?: string;
   };
+  const resolvedContent = content?.trim() ?? "";
 
-  if (!content) {
+  if (!resolvedContent) {
     return Response.json(
       { error: "content is required." },
       { status: 400 }
     );
   }
 
-  const commentId = await createComment({
-    postId: id,
-    authorId: userId,
-    body: content,
-  });
+  try {
+    const commentId = await createComment({
+      postId: id,
+      authorId: userId,
+      body: resolvedContent,
+    });
 
-  return Response.json({ id: commentId }, { status: 201 });
+    return Response.json({ id: commentId }, { status: 201 });
+  } catch (error) {
+    console.error("createComment failed", error);
+    const message =
+      error instanceof Error ? error.message : "Comment create failed.";
+    return Response.json({ error: message }, { status: 500 });
+  }
 }

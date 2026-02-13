@@ -1,4 +1,5 @@
 import { verifyFirebaseBearer, type FirebaseVerifiedUser } from "@/lib/firebase-auth";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 type HeaderCarrier = {
   headers: Headers | Record<string, string>;
@@ -21,6 +22,26 @@ export function isAdminEmail(email: string | null | undefined) {
   const single = (process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
   const normalized = email.trim().toLowerCase();
   return fromList.includes(normalized) || (single !== "" && single === normalized);
+}
+
+export async function isAdminUser(user: AuthUser) {
+  if (isAdminEmail(user.email)) {
+    return true;
+  }
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("users")
+    .select("role, status, deleted_at")
+    .eq("firebase_uid", user.id)
+    .maybeSingle();
+
+  if (error || !data) return false;
+  if (data.deleted_at) return false;
+  if (data.status && data.status !== "active") return false;
+
+  const role = typeof data.role === "string" ? data.role.toLowerCase() : "";
+  return role === "admin" || role === "moderator";
 }
 
 function toAuthUser(firebaseUser: FirebaseVerifiedUser): AuthUser {

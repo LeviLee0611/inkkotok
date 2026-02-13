@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromRequest, isAdminEmail } from "@/lib/auth";
+import { getUserFromRequest, isAdminUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { validateUsername } from "@/lib/username";
 
@@ -49,6 +49,8 @@ export async function GET(request: NextRequest) {
   const resolvedEmail = profileData?.email ?? userData?.email ?? null;
   const resolvedImage = profileData?.image_url ?? userData?.photo_url ?? null;
 
+  const admin = await isAdminUser(user);
+
   return NextResponse.json(
     {
       profile: profileData
@@ -66,7 +68,7 @@ export async function GET(request: NextRequest) {
             providers: [user.provider],
             nickname_updated_at: null,
           },
-      isAdmin: isAdminEmail(user.email),
+      isAdmin: admin,
     },
     {
       headers: {

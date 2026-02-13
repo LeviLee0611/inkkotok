@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 
-import { getUserFromRequest, isAdminEmail } from "@/lib/auth";
+import { getUserFromRequest, isAdminUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "edge";
@@ -38,7 +38,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
-  const isAdmin = isAdminEmail(user.email);
+  const isAdmin = await isAdminUser(user);
   if (!isAdmin && existing.author_id !== user.id) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -86,7 +86,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
-  const isAdmin = isAdminEmail(user.email);
+  const isAdmin = await isAdminUser(user);
   if (!isAdmin && existing.author_id !== user.id) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
