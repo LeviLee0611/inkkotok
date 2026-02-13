@@ -9,7 +9,23 @@ const COOKIE_NAMES = [
   "authjs.session-token",
 ];
 
-export async function getUserIdFromRequest(request: HeaderCarrier) {
+type AuthUser = {
+  id: string;
+  email: string | null;
+};
+
+export function isAdminEmail(email: string | null | undefined) {
+  if (!email) return false;
+  const fromList = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  const single = (process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
+  const normalized = email.trim().toLowerCase();
+  return fromList.includes(normalized) || (single !== "" && single === normalized);
+}
+
+export async function getUserFromRequest(request: HeaderCarrier): Promise<AuthUser | null> {
   const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
   if (!secret) return null;
 
@@ -28,8 +44,18 @@ export async function getUserIdFromRequest(request: HeaderCarrier) {
       salt: cookieName,
       secureCookie: cookieName.startsWith("__Secure") || cookieName.startsWith("__Host"),
     });
-    if (token?.sub) return token.sub;
+    if (token?.sub) {
+      return {
+        id: token.sub,
+        email: typeof token.email === "string" ? token.email : null,
+      };
+    }
   }
 
   return null;
+}
+
+export async function getUserIdFromRequest(request: HeaderCarrier) {
+  const user = await getUserFromRequest(request);
+  return user?.id ?? null;
 }

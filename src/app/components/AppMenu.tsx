@@ -6,6 +6,7 @@ type SessionUser = {
   name?: string | null;
   email?: string | null;
   image?: string | null;
+  nickname?: string | null;
 };
 
 type SessionResponse = {
@@ -46,9 +47,34 @@ export default function AppMenu() {
       }
     };
 
+    const onNicknameUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ nickname?: string }>;
+      const nickname = customEvent.detail?.nickname?.trim();
+      if (!nickname) return;
+      setProfile((prev) =>
+        prev ? { ...prev, display_name: nickname } : { display_name: nickname }
+      );
+      setSession((prev) => {
+        if (!prev?.user) return prev;
+        return {
+          ...prev,
+          user: { ...prev.user, name: nickname, nickname },
+        };
+      });
+    };
+
+    const onWindowFocus = () => {
+      void load();
+    };
+
     void load();
+    window.addEventListener("nickname-updated", onNicknameUpdated);
+    window.addEventListener("focus", onWindowFocus);
+
     return () => {
       cancelled = true;
+      window.removeEventListener("nickname-updated", onNicknameUpdated);
+      window.removeEventListener("focus", onWindowFocus);
     };
   }, []);
 

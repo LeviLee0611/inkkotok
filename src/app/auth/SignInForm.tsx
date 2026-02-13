@@ -8,7 +8,9 @@ export default function SignInForm() {
   const onGoogleSignIn = async () => {
     setLoading(true);
     // Avoid fetch-based signIn to prevent CORS errors on OAuth redirects.
-    window.location.assign("/api/auth/signin/google?callbackUrl=%2Ffeed");
+    window.location.assign(
+      "/api/auth/signin/google?callbackUrl=%2Ffeed&prompt=select_account"
+    );
   };
 
   return (

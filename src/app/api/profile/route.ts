@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUserIdFromRequest } from "@/lib/auth";
+import { getUserFromRequest, isAdminEmail } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { validateUsername } from "@/lib/username";
 
 export const runtime = "edge";
 
 export async function GET(request: NextRequest) {
-  const userId = await getUserIdFromRequest(request);
-  if (!userId) {
+  const user = await getUserFromRequest(request);
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userId = user.id;
 
   const supabase = getSupabaseAdmin();
   let { data, error } = await supabase
@@ -34,14 +35,18 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ profile: data });
+  return NextResponse.json({
+    profile: data,
+    isAdmin: isAdminEmail(user.email),
+  });
 }
 
 export async function PATCH(request: NextRequest) {
-  const userId = await getUserIdFromRequest(request);
-  if (!userId) {
+  const user = await getUserFromRequest(request);
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userId = user.id;
 
   const body = (await request.json().catch(() => null)) as
     | { username?: string }

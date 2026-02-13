@@ -96,8 +96,14 @@ export default function UserPanel({ redirectTo }: UserPanelProps) {
       }
 
       setMessage("닉네임이 저장됐어요.");
+      const resolvedName = data.username ?? username.trim();
       setProfile((prev) =>
-        prev ? { ...prev, display_name: data.username ?? username } : prev
+        prev ? { ...prev, display_name: resolvedName } : prev
+      );
+      window.dispatchEvent(
+        new CustomEvent("nickname-updated", {
+          detail: { nickname: resolvedName },
+        })
       );
       if (redirectTo) {
         window.location.assign(redirectTo);
