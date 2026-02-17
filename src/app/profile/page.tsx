@@ -24,6 +24,10 @@ export default function ProfilePage() {
   const [nickname, setNickname] = useState("");
   const [savingNickname, setSavingNickname] = useState(false);
   const [nicknameMessage, setNicknameMessage] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarMessage, setAvatarMessage] = useState<string | null>(null);
+  const [savingAvatar, setSavingAvatar] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,6 +102,93 @@ export default function ProfilePage() {
     }
   };
 
+  const onUploadAvatar = async () => {
+    setAvatarMessage(null);
+    if (!avatarFile) {
+      setAvatarMessage("업로드할 이미지를 먼저 선택해주세요.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("avatar", avatarFile);
+
+    setSavingAvatar(true);
+    try {
+      const res = await authFetch("/api/profile/avatar", {
+        method: "POST",
+        body: formData,
+      });
+      const json = (await res.json().catch(() => null)) as
+        | { imageUrl?: string; error?: string }
+        | null;
+      if (!res.ok) {
+        setAvatarMessage(json?.error ?? "프로필 이미지 업로드에 실패했어요.");
+        return;
+      }
+
+      const imageUrl = json?.imageUrl ?? null;
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              profile: prev.profile
+                ? { ...prev.profile, image_url: imageUrl }
+                : { display_name: null, email: null, image_url: imageUrl },
+            }
+          : prev
+      );
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      setAvatarMessage("프로필 이미지가 저장됐어요.");
+      window.dispatchEvent(
+        new CustomEvent("profile-avatar-updated", {
+          detail: { imageUrl },
+        })
+      );
+    } catch {
+      setAvatarMessage("프로필 이미지 업로드 중 오류가 발생했어요.");
+    } finally {
+      setSavingAvatar(false);
+    }
+  };
+
+  const onResetAvatar = async () => {
+    setAvatarMessage(null);
+    setSavingAvatar(true);
+    try {
+      const res = await authFetch("/api/profile/avatar", { method: "DELETE" });
+      const json = (await res.json().catch(() => null)) as
+        | { ok?: boolean; error?: string }
+        | null;
+      if (!res.ok) {
+        setAvatarMessage(json?.error ?? "프로필 이미지 초기화에 실패했어요.");
+        return;
+      }
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              profile: prev.profile
+                ? { ...prev.profile, image_url: null }
+                : { display_name: null, email: null, image_url: null },
+            }
+          : prev
+      );
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      setAvatarMessage("기본 프로필 이미지로 변경됐어요.");
+      window.dispatchEvent(
+        new CustomEvent("profile-avatar-updated", {
+          detail: { imageUrl: null },
+        })
+      );
+    } catch {
+      setAvatarMessage("프로필 이미지 초기화 중 오류가 발생했어요.");
+    } finally {
+      setSavingAvatar(false);
+    }
+  };
+
   return (
     <div className="min-h-screen px-6 pb-20 pt-10 md:px-12">
       <header className="mx-auto flex w-full max-w-6xl flex-col gap-3 rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-[var(--shadow)]">
@@ -141,6 +232,61 @@ export default function ProfilePage() {
                 {loading ? "-" : data?.stats?.comments ?? 0}
               </p>
             </div>
+          </section>
+
+          <section className="mx-auto mt-6 w-full max-w-6xl rounded-3xl border border-[var(--border-soft)] bg-white/90 p-5 shadow-sm">
+            <p className="text-sm font-semibold text-[var(--ink)]">프로필 사진</p>
+            <p className="mt-1 text-xs text-zinc-500">
+              기본 이미지를 유지하거나 원하는 사진으로 고정할 수 있어요.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-[var(--border-soft)] bg-[var(--paper)]">
+                {avatarPreview || data?.profile?.image_url ? (
+                  <img
+                    src={avatarPreview ?? data?.profile?.image_url ?? ""}
+                    alt="프로필 미리보기"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-sm font-semibold text-[var(--cocoa)]">
+                    {(data?.profile?.display_name ?? "익명").slice(0, 1)}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    setAvatarFile(file);
+                    setAvatarPreview(file ? URL.createObjectURL(file) : null);
+                  }}
+                  className="text-xs text-zinc-600"
+                />
+                <button
+                  className="h-10 rounded-xl bg-[var(--ink)] px-4 text-xs font-semibold text-white disabled:opacity-60"
+                  type="button"
+                  disabled={savingAvatar}
+                  onClick={() => {
+                    void onUploadAvatar();
+                  }}
+                >
+                  {savingAvatar ? "업로드 중..." : "사진 저장"}
+                </button>
+                <button
+                  className="h-10 rounded-xl border border-[var(--border-soft)] bg-white px-4 text-xs font-semibold text-[var(--cocoa)] disabled:opacity-60"
+                  type="button"
+                  disabled={savingAvatar}
+                  onClick={() => {
+                    void onResetAvatar();
+                  }}
+                >
+                  기본 이미지로
+                </button>
+              </div>
+            </div>
+            {avatarMessage ? <p className="mt-2 text-xs text-zinc-500">{avatarMessage}</p> : null}
           </section>
 
           <section className="mx-auto mt-6 w-full max-w-6xl rounded-3xl border border-[var(--border-soft)] bg-white/90 p-5 shadow-sm">

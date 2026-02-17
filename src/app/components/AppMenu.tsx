@@ -48,10 +48,13 @@ export default function AppMenu() {
         const res = await authFetch("/api/profile", { cache: "no-store" });
         if (!res.ok) return;
         const json = (await res.json()) as {
-          profile?: { display_name?: string | null } | null;
+          profile?: { display_name?: string | null; image_url?: string | null } | null;
         };
         if (!cancelled) {
           setDisplayName(json.profile?.display_name?.trim() || null);
+          if (json.profile?.image_url) {
+            setAvatar(json.profile.image_url);
+          }
         }
       } catch {
         if (!cancelled) setDisplayName(null);
@@ -63,6 +66,17 @@ export default function AppMenu() {
       cancelled = true;
     };
   }, [email]);
+
+  useEffect(() => {
+    const onAvatarUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ imageUrl?: string | null }>;
+      setAvatar(customEvent.detail?.imageUrl ?? null);
+    };
+    window.addEventListener("profile-avatar-updated", onAvatarUpdated);
+    return () => {
+      window.removeEventListener("profile-avatar-updated", onAvatarUpdated);
+    };
+  }, []);
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
