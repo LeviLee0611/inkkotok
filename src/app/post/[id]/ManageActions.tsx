@@ -113,11 +113,16 @@ export function CommentManageActions({
 }) {
   const canManage = useCanManage(authorId);
   const [working, setWorking] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(body);
   if (!canManage) return null;
 
   const onEdit = async () => {
-    const nextBody = window.prompt("댓글 수정", body);
-    if (nextBody === null) return;
+    const nextBody = draft.trim();
+    if (!nextBody) {
+      window.alert("댓글 내용을 입력해주세요.");
+      return;
+    }
 
     setWorking(true);
     try {
@@ -131,6 +136,7 @@ export function CommentManageActions({
         window.alert(data?.error ?? "수정에 실패했습니다.");
         return;
       }
+      setEditing(false);
       window.location.reload();
     } finally {
       setWorking(false);
@@ -158,23 +164,59 @@ export function CommentManageActions({
   };
 
   return (
-    <div className="mt-2 flex gap-2">
-      <button
-        type="button"
-        className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-[11px] font-semibold text-[var(--cocoa)]"
-        onClick={onEdit}
-        disabled={working}
-      >
-        댓글 수정
-      </button>
-      <button
-        type="button"
-        className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[11px] font-semibold text-red-700"
-        onClick={onDelete}
-        disabled={working}
-      >
-        댓글 삭제
-      </button>
+    <div className="mt-2">
+      {editing ? (
+        <div className="grid gap-2">
+          <textarea
+            className="min-h-[86px] w-full rounded-xl border border-[var(--border-soft)] bg-white px-3 py-2 text-xs text-[var(--ink)]"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            disabled={working}
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-[11px] font-semibold text-[var(--cocoa)]"
+              onClick={() => {
+                setDraft(body);
+                setEditing(false);
+              }}
+              disabled={working}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-[11px] font-semibold text-[var(--cocoa)]"
+              onClick={() => {
+                void onEdit();
+              }}
+              disabled={working}
+            >
+              저장
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-[11px] font-semibold text-[var(--cocoa)]"
+            onClick={() => setEditing(true)}
+            disabled={working}
+          >
+            댓글 수정
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[11px] font-semibold text-red-700"
+            onClick={onDelete}
+            disabled={working}
+          >
+            댓글 삭제
+          </button>
+        </div>
+      )}
     </div>
   );
 }
