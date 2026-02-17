@@ -10,10 +10,10 @@ import {
 
 type Provider = "google" | "azure" | "kakao";
 
-const PROVIDERS: Array<{ id: Provider; label: string; ui: "google" | "microsoft" | "apple" }> = [
+const PROVIDERS: Array<{ id: Provider; label: string; ui: "google" | "microsoft" | "kakao" }> = [
   { id: "google", label: "Google로 계속", ui: "google" },
   { id: "azure", label: "Microsoft로 계속", ui: "microsoft" },
-  { id: "kakao", label: "Apple로 계속", ui: "apple" },
+  { id: "kakao", label: "Kakao로 계속", ui: "kakao" },
 ];
 const AZURE_LOGIN_HINT = "363CA7E3A9F2D085F027AF91E28207E5";
 
@@ -152,7 +152,7 @@ export default function AuthActions() {
 
   const emailActionDisabled = working || !email.trim() || !captchaChecked;
 
-  const renderOAuthIcon = (kind: "google" | "microsoft" | "apple") => {
+  const renderOAuthIcon = (kind: "google" | "microsoft" | "kakao") => {
     if (kind === "google") {
       return (
         <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
@@ -186,8 +186,12 @@ export default function AuthActions() {
       );
     }
     return (
-      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">
-        <path d="M15.5 3.1c0 1.4-.6 2.7-1.5 3.6-.9.9-2 .9-2 .9s-.1-1.4.8-2.3c.8-.9 2.1-1.5 2.7-1.5ZM19.5 17.7c-.5 1.2-.8 1.7-1.4 2.7-.8 1.3-1.9 2.9-3.2 2.9-1.2 0-1.6-.8-3.1-.8s-2 .8-3.2.8c-1.3 0-2.3-1.4-3.1-2.7-2.2-3.3-2.5-7.1-1.1-9.3 1-1.6 2.7-2.5 4.4-2.5 1.3 0 2.5.9 3.1.9.6 0 2-.9 3.5-.8.6 0 2.3.2 3.4 1.8-3 .9-2.6 5.1.7 7Z" />
+      <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="#FEE500" />
+        <path
+          d="M12 7.3c-3 0-5.4 1.9-5.4 4.2 0 1.5 1 2.8 2.5 3.5l-.6 2.2c-.1.2.1.3.3.2l2.7-1.8c.2 0 .4.1.6.1 3 0 5.4-1.9 5.4-4.2S15 7.3 12 7.3Z"
+          fill="#191919"
+        />
       </svg>
     );
   };
