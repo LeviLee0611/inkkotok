@@ -5,11 +5,13 @@ let cachedClient: SupabaseClient | null = null;
 export function getSupabaseAdmin() {
   if (cachedClient) return cachedClient;
 
-  const url = process.env.SUPABASE_URL;
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceRoleKey) {
-    throw new Error("Missing Supabase admin credentials.");
+    throw new Error(
+      "Missing Supabase admin credentials. Set SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL)."
+    );
   }
 
   cachedClient = createClient(url, serviceRoleKey, {

@@ -204,8 +204,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ username });
   } catch (error) {
     console.error("profile patch failed", error);
+    const detail = error instanceof Error ? error.message : "unknown";
     return NextResponse.json(
-      { error: "닉네임 저장 중 서버 오류가 발생했어요." },
+      { error: "닉네임 저장 중 서버 오류가 발생했어요.", detail },
       { status: 500 }
     );
   }
