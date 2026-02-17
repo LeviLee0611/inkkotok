@@ -1,5 +1,6 @@
 import { getPostById, listComments } from "@/lib/posts";
 import CommentComposer from "./CommentComposer";
+import { CommentManageActions, PostManageActions } from "./ManageActions";
 
 export const runtime = "edge";
 
@@ -52,6 +53,13 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
           <span>댓글 {comments.length}</span>
           <span>방금 전</span>
         </div>
+        <PostManageActions
+          postId={id}
+          authorId={post.author_id}
+          title={post.title}
+          lounge={post.lounge}
+          body={post.body}
+        />
       </header>
 
       <main className="mx-auto mt-6 w-full max-w-5xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
@@ -76,6 +84,11 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
                   comment.author_id.slice(0, 6)}
               </p>
               <p className="mt-1">{comment.body}</p>
+              <CommentManageActions
+                commentId={comment.id}
+                authorId={comment.author_id}
+                body={comment.body}
+              />
             </div>
           ))}
         </div>

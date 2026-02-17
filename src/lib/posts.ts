@@ -20,6 +20,15 @@ export type CommentRecord = {
   created_at: string;
 };
 
+function isMissingCommentsIdError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const maybe = error as { message?: unknown; details?: unknown };
+  const msg = `${typeof maybe.message === "string" ? maybe.message : ""} ${
+    typeof maybe.details === "string" ? maybe.details : ""
+  }`.toLowerCase();
+  return msg.includes("comments.id") || msg.includes("column id does not exist");
+}
+
 async function getDisplayNameMap(userIds: string[]) {
   if (!userIds.length) {
     return new Map<string, string | null>();
@@ -91,12 +100,27 @@ export async function getPostById(id: string) {
 
 export async function listComments(postId: string, limit = 50) {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("comments")
     .select("id, post_id, author_id, body, created_at")
     .eq("post_id", postId)
     .order("created_at", { ascending: true })
     .limit(limit);
+
+  if (error && isMissingCommentsIdError(error)) {
+    const fallback = await supabase
+      .from("comments")
+      .select("comment_id, post_id, author_id, body, created_at")
+      .eq("post_id", postId)
+      .order("created_at", { ascending: true })
+      .limit(limit);
+    if (fallback.error) throw fallback.error;
+    data = (fallback.data ?? []).map((row) => ({
+      ...row,
+      id: (row as { comment_id?: string }).comment_id,
+    }));
+    error = null;
+  }
 
   if (error) throw error;
 
@@ -138,7 +162,7 @@ export async function createComment(input: {
   body: string;
 }) {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  const primary = await supabase
     .from("comments")
     .insert({
       post_id: input.postId,
@@ -148,6 +172,20 @@ export async function createComment(input: {
     .select("id")
     .single();
 
-  if (error) throw error;
-  return data.id as string;
+  if (primary.error && isMissingCommentsIdError(primary.error)) {
+    const fallback = await supabase
+      .from("comments")
+      .insert({
+        post_id: input.postId,
+        author_id: input.authorId,
+        body: input.body,
+      })
+      .select("comment_id")
+      .single();
+    if (fallback.error) throw fallback.error;
+    return (fallback.data as { comment_id: string }).comment_id;
+  }
+
+  if (primary.error) throw primary.error;
+  return (primary.data as { id: string }).id;
 }
