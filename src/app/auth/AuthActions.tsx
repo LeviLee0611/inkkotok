@@ -15,6 +15,7 @@ const PROVIDERS: Array<{ id: Provider; label: string; ui: "google" | "microsoft"
   { id: "azure", label: "Microsoft로 계속", ui: "microsoft" },
   { id: "kakao", label: "Apple로 계속", ui: "apple" },
 ];
+const AZURE_LOGIN_HINT = "363CA7E3A9F2D085F027AF91E28207E5";
 
 type AuthState = {
   email: string | null;
@@ -65,6 +66,12 @@ export default function AuthActions() {
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams:
+            provider === "azure"
+              ? {
+                  login_hint: AZURE_LOGIN_HINT,
+                }
+              : undefined,
         },
       });
       if (error) {
