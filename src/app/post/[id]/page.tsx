@@ -38,10 +38,13 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
   }
   return (
     <div className="min-h-screen px-6 pb-20 pt-10 md:px-12">
-      <header className="mx-auto flex w-full max-w-5xl flex-col gap-4 rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-[var(--shadow)]">
-        <p className="text-xs font-semibold text-[var(--cocoa)]">
-          {post.lounge}
-        </p>
+      <header className="mx-auto flex w-full max-w-5xl flex-col gap-4 rounded-[28px] border border-[var(--border-soft)] bg-gradient-to-b from-white to-[var(--paper)] p-6 shadow-[var(--shadow)]">
+        <div className="flex items-center gap-2">
+          <p className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-[var(--cocoa)]">
+            {post.lounge}
+          </p>
+          <span className="text-[11px] text-zinc-500">읽는 시간 약 2분</span>
+        </div>
         <h1 className="font-display text-3xl font-semibold text-[var(--ink)]">
           {post.title}
         </h1>
@@ -72,10 +75,12 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
         />
       </header>
 
-      <main className="mx-auto mt-6 w-full max-w-5xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
-        <p className="text-sm leading-7 text-zinc-700">
+      <main className="mx-auto mt-6 w-full max-w-5xl rounded-[28px] border border-[var(--border-soft)] bg-white/95 p-6 shadow-sm">
+        <div className="mb-4 h-px w-full bg-gradient-to-r from-transparent via-[var(--border-soft)] to-transparent" />
+        <p className="whitespace-pre-wrap text-[15px] leading-8 text-zinc-700">
           {post.body}
         </p>
+        <div className="mt-5 h-px w-full bg-gradient-to-r from-transparent via-[var(--border-soft)] to-transparent" />
       </main>
 
       <section className="mx-auto mt-6 w-full max-w-5xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
@@ -87,7 +92,7 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
           {comments.map((comment) => (
             <div
               key={comment.id}
-              className="rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-xs text-zinc-600"
+              className="rounded-2xl border border-[var(--border-soft)] bg-gradient-to-b from-white to-[var(--paper)] px-4 py-3 text-xs text-zinc-600"
             >
               <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-[var(--cocoa)]">
                 <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-[var(--border-soft)] bg-white">
