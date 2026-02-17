@@ -66,12 +66,14 @@ export default function AuthActions() {
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams:
-            provider === "azure"
+          queryParams: {
+            ...(provider === "google" ? { prompt: "select_account" } : {}),
+            ...(provider === "azure"
               ? {
                   login_hint: AZURE_LOGIN_HINT,
                 }
-              : undefined,
+              : {}),
+          },
         },
       });
       if (error) {
