@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 
 export default function BrandMark() {
   return (
@@ -9,10 +10,13 @@ export default function BrandMark() {
       href="/"
     >
       <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-2xl bg-[var(--sun)]">
-        <img
+        <Image
           src="/logo.png"
           alt="잉꼬부부 로고"
           className="h-full w-full object-cover"
+          width={36}
+          height={36}
+          priority
         />
       </div>
       <div className="leading-tight">

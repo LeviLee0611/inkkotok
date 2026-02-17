@@ -1,20 +1,9 @@
 import { createComment, listComments } from "@/lib/posts";
 import { getUserIdFromRequest } from "@/lib/auth";
+import { readApiErrorMessage } from "@/lib/api-error";
 import { NextRequest } from "next/server";
 
 export const runtime = "edge";
-
-function readErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message) return error.message;
-  if (typeof error === "object" && error !== null) {
-    const maybe = error as { message?: unknown; details?: unknown; hint?: unknown };
-    const parts = [maybe.message, maybe.details, maybe.hint]
-      .filter((value): value is string => typeof value === "string" && value.trim() !== "")
-      .join(" | ");
-    if (parts) return parts;
-  }
-  return fallback;
-}
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -60,7 +49,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return Response.json({ id: commentId }, { status: 201 });
   } catch (error) {
     console.error("createComment failed", error);
-    const message = readErrorMessage(error, "Comment create failed.");
+    const message = readApiErrorMessage(error, "Comment create failed.");
     return Response.json({ error: message }, { status: 500 });
   }
 }

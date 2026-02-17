@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type HomePageProps = {
   searchParams: Promise<{ loggedOut?: string }>;
 };
@@ -14,10 +16,13 @@ export default async function Home({ searchParams }: HomePageProps) {
         <nav className="mx-auto flex w-full max-w-6xl items-center justify-between rounded-3xl border border-[var(--border-soft)] bg-white/80 px-5 py-4 shadow-[var(--shadow)] backdrop-blur">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-[var(--sun)]">
-              <img
+              <Image
                 src="/logo.png"
                 alt="잉꼬톡 로고"
                 className="h-full w-full object-cover"
+                width={40}
+                height={40}
+                priority
               />
             </div>
             <div className="leading-tight">
@@ -80,8 +85,8 @@ export default async function Home({ searchParams }: HomePageProps) {
               부부 커뮤니티
             </h1>
             <p className="max-w-xl text-base leading-7 text-zinc-600">
-              읽기는 언제나 자유롭게, 글/댓글 기능은 Supabase 로그인 연동 후
-              제공됩니다. 세대별·주제별 라운지에서 바로 이야기를 시작하세요.
+              읽기는 언제나 자유롭게, 로그인 후 글/댓글을 바로 작성할 수 있어요.
+              세대별·주제별 라운지에서 이야기를 시작해보세요.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <a
