@@ -50,49 +50,13 @@ function useCanManage(authorId: string) {
 export function PostManageActions({
   postId,
   authorId,
-  title,
-  lounge,
-  body,
 }: {
   postId: string;
   authorId: string;
-  title: string;
-  lounge: string;
-  body: string;
 }) {
   const canManage = useCanManage(authorId);
   const [working, setWorking] = useState(false);
   if (!canManage) return null;
-
-  const onEdit = async () => {
-    const nextTitle = window.prompt("수정할 제목", title);
-    if (nextTitle === null) return;
-    const nextLounge = window.prompt("수정할 라운지", lounge);
-    if (nextLounge === null) return;
-    const nextBody = window.prompt("수정할 내용", body);
-    if (nextBody === null) return;
-
-    setWorking(true);
-    try {
-      const res = await authFetch(`/api/posts/${postId}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          title: nextTitle,
-          lounge: nextLounge,
-          content: nextBody,
-        }),
-      });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { error?: string } | null;
-        window.alert(data?.error ?? "수정에 실패했습니다.");
-        return;
-      }
-      window.location.reload();
-    } finally {
-      setWorking(false);
-    }
-  };
 
   const onDelete = async () => {
     const ok = window.confirm("이 게시글과 댓글을 모두 삭제할까요?");
@@ -119,7 +83,9 @@ export function PostManageActions({
       <button
         type="button"
         className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-xs font-semibold text-[var(--cocoa)]"
-        onClick={onEdit}
+        onClick={() => {
+          window.location.assign(`/post/${postId}/edit`);
+        }}
         disabled={working}
       >
         글 수정

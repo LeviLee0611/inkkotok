@@ -12,12 +12,27 @@ const LOUNGES = [
   "재정/자산",
 ];
 
-export default function WriteForm() {
-  const [title, setTitle] = useState("");
-  const [lounge, setLounge] = useState(LOUNGES[0]);
-  const [content, setContent] = useState("");
+type WriteFormProps = {
+  mode?: "create" | "edit";
+  postId?: string;
+  initialTitle?: string;
+  initialLounge?: string;
+  initialContent?: string;
+};
+
+export default function WriteForm({
+  mode = "create",
+  postId,
+  initialTitle = "",
+  initialLounge = LOUNGES[0],
+  initialContent = "",
+}: WriteFormProps) {
+  const [title, setTitle] = useState(initialTitle);
+  const [lounge, setLounge] = useState(initialLounge);
+  const [content, setContent] = useState(initialContent);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const isEditMode = mode === "edit";
 
   const onSubmit = async () => {
     setMessage(null);
@@ -28,8 +43,8 @@ export default function WriteForm() {
 
     setSaving(true);
     try {
-      const res = await authFetch("/api/posts", {
-        method: "POST",
+      const res = await authFetch(isEditMode && postId ? `/api/posts/${postId}` : "/api/posts", {
+        method: isEditMode ? "PATCH" : "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
@@ -41,20 +56,29 @@ export default function WriteForm() {
       const data = (await res.json()) as { id?: string; error?: string };
       if (!res.ok) {
         if (res.status === 401) {
-          setMessage("로그인 후 글을 작성할 수 있어요.");
+          setMessage(`로그인 후 글을 ${isEditMode ? "수정" : "작성"}할 수 있어요.`);
           return;
         }
-        setMessage(data.error ?? "글 저장에 실패했어요.");
+        if (res.status === 403) {
+          setMessage("작성자 또는 관리자만 수정할 수 있어요.");
+          return;
+        }
+        setMessage(data.error ?? `글 ${isEditMode ? "수정" : "저장"}에 실패했어요.`);
         return;
       }
 
-      if (data.id) {
+      if (isEditMode && postId) {
+        window.location.assign(`/post/${postId}`);
+        return;
+      }
+
+      if (!isEditMode && data.id) {
         window.location.assign(`/post/${data.id}`);
       } else {
-        setMessage("작성은 완료됐지만 이동에 실패했어요.");
+        setMessage(`${isEditMode ? "수정" : "작성"}은 완료됐지만 이동에 실패했어요.`);
       }
     } catch {
-      setMessage("글 저장 중 오류가 발생했어요.");
+      setMessage(`글 ${isEditMode ? "수정" : "저장"} 중 오류가 발생했어요.`);
     } finally {
       setSaving(false);
     }
@@ -63,7 +87,7 @@ export default function WriteForm() {
   return (
     <main className="mx-auto mt-8 w-full max-w-4xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
       <div className="mb-6 rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--cocoa)]">
-        로그인 상태에서 작성하면 글이 바로 등록돼요.
+        로그인 상태에서 {isEditMode ? "수정" : "작성"}하면 바로 반영돼요.
       </div>
       <div className="grid gap-4">
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
@@ -111,12 +135,16 @@ export default function WriteForm() {
           disabled={saving}
           onClick={onSubmit}
         >
-          {saving ? "작성 중..." : "작성 완료"}
+          {saving ? `${isEditMode ? "수정" : "작성"} 중...` : isEditMode ? "수정 완료" : "작성 완료"}
         </button>
         {message ? (
           <p className="text-xs text-zinc-500">{message}</p>
         ) : (
-          <p className="text-xs text-zinc-500">작성한 글은 바로 피드에 반영됩니다.</p>
+          <p className="text-xs text-zinc-500">
+            {isEditMode
+              ? "수정한 내용은 즉시 게시글에 반영됩니다."
+              : "작성한 글은 바로 피드에 반영됩니다."}
+          </p>
         )}
       </div>
     </main>

@@ -56,9 +56,6 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
         <PostManageActions
           postId={id}
           authorId={post.author_id}
-          title={post.title}
-          lounge={post.lounge}
-          body={post.body}
         />
       </header>
 
