@@ -98,36 +98,39 @@ export default function WriteForm({
         </label>
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           라운지 선택
-          <div className="grid gap-2 text-xs text-zinc-600 sm:grid-cols-2">
-            {LOUNGES.map((label) => (
-              <button
-                key={label}
-                className={`rounded-2xl border border-[var(--border-soft)] px-3 py-2 text-left ${
-                  lounge === label
-                    ? "bg-[var(--lavender)] text-[var(--ink)]"
-                    : "bg-[var(--paper)]"
-                }`}
-                type="button"
-                onClick={() => setLounge(label)}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="relative">
+            <select
+              className="h-11 w-full appearance-none rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 pr-10 text-sm font-medium text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+              value={lounge}
+              onChange={(event) => setLounge(event.target.value)}
+            >
+              {LOUNGES.map((label) => (
+                <option key={label} value={label}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-zinc-500">
+              ▼
+            </span>
           </div>
         </label>
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           내용
-          <div className="rounded-2xl border border-[var(--border-soft)] bg-gradient-to-b from-white to-[var(--paper)] p-3">
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-gradient-to-b from-white via-white to-[var(--paper)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
             <div className="mb-2 flex items-center justify-between px-1 text-[11px] text-zinc-500">
-              <span>자유롭게 작성</span>
+              <span className="font-medium">본문</span>
               <span>{content.trim().length}자</span>
             </div>
             <textarea
-              className="min-h-[220px] w-full rounded-xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm leading-6 text-zinc-700 outline-none focus:border-[var(--accent)]"
+              className="min-h-[260px] w-full rounded-xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm leading-7 text-zinc-700 outline-none transition focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_rgba(245,158,11,0.15)]"
               placeholder="상황과 감정을 자유롭게 적어주세요"
               value={content}
               onChange={(event) => setContent(event.target.value)}
             />
+            <p className="mt-2 px-1 text-[11px] font-normal text-zinc-500">
+              줄바꿈과 문단을 나눠 쓰면 읽기 쉬워져요.
+            </p>
           </div>
         </label>
       </div>
