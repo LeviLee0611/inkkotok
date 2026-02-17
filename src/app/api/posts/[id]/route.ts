@@ -69,15 +69,26 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     );
   }
 
-  updates.updated_at = new Date().toISOString();
+  const updatePayloads: Array<Record<string, string>> = [
+    { ...updates, updated_at: new Date().toISOString() },
+    updates,
+  ];
 
-  const { error: updateError } = await supabase
-    .from("posts")
-    .update(updates)
-    .eq("id", id);
+  let updateError: { message?: string } | null = null;
+  for (const payload of updatePayloads) {
+    const result = await supabase.from("posts").update(payload).eq("id", id);
+    if (!result.error) {
+      updateError = null;
+      break;
+    }
+    updateError = result.error;
+  }
 
   if (updateError) {
-    return Response.json({ error: "Update failed." }, { status: 500 });
+    return Response.json(
+      { error: updateError.message ?? "Update failed." },
+      { status: 500 }
+    );
   }
 
   return Response.json({ ok: true });

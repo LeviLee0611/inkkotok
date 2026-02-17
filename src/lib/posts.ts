@@ -162,9 +162,11 @@ export async function createComment(input: {
   body: string;
 }) {
   const supabase = getSupabaseAdmin();
+  const commentId = crypto.randomUUID();
   const primary = await supabase
     .from("comments")
     .insert({
+      id: commentId,
       post_id: input.postId,
       author_id: input.authorId,
       body: input.body,
@@ -176,6 +178,7 @@ export async function createComment(input: {
     const fallback = await supabase
       .from("comments")
       .insert({
+        comment_id: commentId,
         post_id: input.postId,
         author_id: input.authorId,
         body: input.body,
