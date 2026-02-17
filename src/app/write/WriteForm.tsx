@@ -41,7 +41,7 @@ export default function WriteForm() {
       const data = (await res.json()) as { id?: string; error?: string };
       if (!res.ok) {
         if (res.status === 401) {
-          setMessage("로그인 연동 후 글 작성이 가능해요. (Supabase 인증 준비중)");
+          setMessage("로그인 후 글을 작성할 수 있어요.");
           return;
         }
         setMessage(data.error ?? "글 저장에 실패했어요.");
@@ -63,8 +63,7 @@ export default function WriteForm() {
   return (
     <main className="mx-auto mt-8 w-full max-w-4xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
       <div className="mb-6 rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--cocoa)]">
-        로그인 기능은 Supabase 연동 예정입니다. 연동 전에는 저장 시 401이
-        반환될 수 있어요.
+        로그인 상태에서 작성하면 글이 바로 등록돼요.
       </div>
       <div className="grid gap-4">
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
@@ -117,9 +116,7 @@ export default function WriteForm() {
         {message ? (
           <p className="text-xs text-zinc-500">{message}</p>
         ) : (
-          <p className="text-xs text-zinc-500">
-            연동 완료 후 작성한 글은 바로 피드에 반영됩니다.
-          </p>
+          <p className="text-xs text-zinc-500">작성한 글은 바로 피드에 반영됩니다.</p>
         )}
       </div>
     </main>

@@ -29,7 +29,7 @@ export default function CommentComposer({ postId }: { postId: string }) {
 
       if (!res.ok) {
         if (res.status === 401) {
-          setMessage("로그인 연동 후 댓글 작성이 가능해요. (Supabase 인증 준비중)");
+          setMessage("로그인 후 댓글을 작성할 수 있어요.");
           return;
         }
         setMessage(data?.error ?? "댓글 작성에 실패했어요.");
@@ -54,9 +54,7 @@ export default function CommentComposer({ postId }: { postId: string }) {
         disabled={saving}
       />
       <div className="mt-2 flex items-center justify-between gap-2">
-        <p className="text-xs text-zinc-500">
-          Supabase 로그인 연동 후 댓글이 등록됩니다.
-        </p>
+        <p className="text-xs text-zinc-500">로그인 상태에서 댓글이 등록됩니다.</p>
         <button
           className="rounded-full bg-[var(--ink)] px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
           type="button"

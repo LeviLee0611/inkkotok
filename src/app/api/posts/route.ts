@@ -4,6 +4,18 @@ import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
+function readErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "object" && error !== null) {
+    const maybe = error as { message?: unknown; details?: unknown; hint?: unknown };
+    const parts = [maybe.message, maybe.details, maybe.hint]
+      .filter((value): value is string => typeof value === "string" && value.trim() !== "")
+      .join(" | ");
+    if (parts) return parts;
+  }
+  return fallback;
+}
+
 export async function GET() {
   const posts = await listPosts(30);
   return Response.json(posts);
@@ -44,8 +56,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ id }, { status: 201 });
   } catch (error) {
     console.error("createPost failed", error);
-    const message =
-      error instanceof Error ? error.message : "Create post failed.";
+    const message = readErrorMessage(error, "Create post failed.");
     return Response.json({ error: message }, { status: 500 });
   }
 }
