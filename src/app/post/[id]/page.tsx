@@ -45,9 +45,22 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
         <h1 className="font-display text-3xl font-semibold text-[var(--ink)]">
           {post.title}
         </h1>
-        <p className="text-sm text-zinc-600">
+        <div className="inline-flex items-center gap-2 text-sm text-zinc-600">
+          <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-[var(--border-soft)] bg-white">
+            {post.author?.[0]?.image_url ? (
+              <img
+                src={post.author[0].image_url}
+                alt="작성자 프로필"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-[10px] font-semibold text-[var(--cocoa)]">
+                {(post.author?.[0]?.display_name ?? "익").slice(0, 1)}
+              </span>
+            )}
+          </span>
           작성자 · {post.author?.[0]?.display_name ?? post.author_id.slice(0, 6)}
-        </p>
+        </div>
         <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
           <span>공감 32</span>
           <span>댓글 {comments.length}</span>
@@ -76,10 +89,23 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
               key={comment.id}
               className="rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-xs text-zinc-600"
             >
-              <p className="text-[11px] font-semibold text-[var(--cocoa)]">
+              <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-[var(--cocoa)]">
+                <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-[var(--border-soft)] bg-white">
+                  {comment.author?.[0]?.image_url ? (
+                    <img
+                      src={comment.author[0].image_url}
+                      alt="댓글 작성자 프로필"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span>
+                      {(comment.author?.[0]?.display_name ?? "익").slice(0, 1)}
+                    </span>
+                  )}
+                </span>
                 {comment.author?.[0]?.display_name ??
                   comment.author_id.slice(0, 6)}
-              </p>
+              </div>
               <p className="mt-1">{comment.body}</p>
               <CommentManageActions
                 commentId={comment.id}

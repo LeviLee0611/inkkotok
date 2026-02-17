@@ -86,9 +86,6 @@ export default function WriteForm({
 
   return (
     <main className="mx-auto mt-8 w-full max-w-4xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
-      <div className="mb-6 rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--cocoa)]">
-        로그인 상태에서 {isEditMode ? "수정" : "작성"}하면 바로 반영돼요.
-      </div>
       <div className="grid gap-4">
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           제목
@@ -120,12 +117,18 @@ export default function WriteForm({
         </label>
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           내용
-          <textarea
-            className="min-h-[180px] rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-sm text-zinc-700"
-            placeholder="상황과 감정을 자유롭게 적어주세요"
-            value={content}
-            onChange={(event) => setContent(event.target.value)}
-          />
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-gradient-to-b from-white to-[var(--paper)] p-3">
+            <div className="mb-2 flex items-center justify-between px-1 text-[11px] text-zinc-500">
+              <span>자유롭게 작성</span>
+              <span>{content.trim().length}자</span>
+            </div>
+            <textarea
+              className="min-h-[220px] w-full rounded-xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm leading-6 text-zinc-700 outline-none focus:border-[var(--accent)]"
+              placeholder="상황과 감정을 자유롭게 적어주세요"
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+            />
+          </div>
         </label>
       </div>
       <div className="mt-6 flex flex-wrap items-center gap-3">

@@ -26,8 +26,8 @@ export default async function FeedPage() {
               지금 사람들이 나누는 이야기
             </h1>
             <p className="mt-2 text-sm text-zinc-600">
-              로그인 없이 읽을 수 있어요. 로그인 기능은 Supabase 연동 뒤
-              제공될 예정입니다.
+              로그인 없이 읽을 수 있어요. 로그인하면 글과 댓글을 바로 남길 수
+              있습니다.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -65,7 +65,20 @@ export default async function FeedPage() {
                 {toExcerpt(post.body)}
               </p>
               <div className="mt-4 flex items-center gap-4 text-xs text-zinc-500">
-                <span>
+                <span className="inline-flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-[var(--border-soft)] bg-white">
+                    {post.author?.[0]?.image_url ? (
+                      <img
+                        src={post.author[0].image_url}
+                        alt="작성자 프로필"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-[10px] font-semibold text-[var(--cocoa)]">
+                        {(post.author?.[0]?.display_name ?? "익").slice(0, 1)}
+                      </span>
+                    )}
+                  </span>
                   작성자 · {post.author?.[0]?.display_name ?? post.id.slice(0, 6)}
                 </span>
                 <span>공감 32</span>
@@ -103,7 +116,7 @@ export default async function FeedPage() {
             </p>
             <ul className="mt-3 grid gap-2 text-xs text-zinc-600">
               <li>읽기는 누구나 가능</li>
-              <li>글/댓글 로그인 기능은 Supabase 연동 예정</li>
+              <li>로그인 후 글/댓글 작성 가능</li>
               <li>실명, 연락처 공유 금지</li>
               <li>민감한 정보는 자동 블라인드</li>
             </ul>
