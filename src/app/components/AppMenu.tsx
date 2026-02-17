@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authFetch } from "@/lib/auth-fetch";
 
 export default function AppMenu() {
   const [email, setEmail] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -24,6 +26,9 @@ export default function AppMenu() {
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setEmail(session?.user?.email ?? null);
+      if (!session?.user) {
+        setDisplayName(null);
+      }
       const metadata = session?.user?.user_metadata as
         | { avatar_url?: string; picture?: string }
         | undefined;
@@ -33,6 +38,31 @@ export default function AppMenu() {
       sub.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!email) return;
+
+    let cancelled = false;
+    const loadProfile = async () => {
+      try {
+        const res = await authFetch("/api/profile", { cache: "no-store" });
+        if (!res.ok) return;
+        const json = (await res.json()) as {
+          profile?: { display_name?: string | null } | null;
+        };
+        if (!cancelled) {
+          setDisplayName(json.profile?.display_name?.trim() || null);
+        }
+      } catch {
+        if (!cancelled) setDisplayName(null);
+      }
+    };
+
+    void loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [email]);
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
@@ -48,9 +78,10 @@ export default function AppMenu() {
   }, []);
 
   const profileLabel = useMemo(() => {
+    if (displayName) return displayName;
     if (!email) return "";
     return email.split("@")[0] || "프로필";
-  }, [email]);
+  }, [displayName, email]);
 
   const onSignOut = async () => {
     const supabase = getSupabaseBrowserClient();

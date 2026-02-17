@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
       image: user.picture,
       provider: user.provider,
+      displayName: user.name,
     });
     return NextResponse.json({ ok: true });
   } catch (error) {

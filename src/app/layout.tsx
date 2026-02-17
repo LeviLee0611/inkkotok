@@ -18,9 +18,12 @@ const notoSerif = Noto_Serif_KR({
 });
 
 export const metadata: Metadata = {
-  title: "잉꼬부부 커뮤니티: 잉꼬톡",
+  title: {
+    default: "잉꼬톡 커뮤니티 | 부부 고민·육아·관계 정보 공유",
+    template: "%s | 잉꼬톡 커뮤니티",
+  },
   description:
-    "잉꼬부부가 고민과 꿀팁을 나누는 따뜻한 커뮤니티, 잉꼬톡.",
+    "잉꼬톡은 부부 고민, 육아, 관계 회복, 생활 꿀팁을 나누는 커뮤니티입니다. 세대별 라운지에서 경험을 공유하고 실질적인 도움을 받아보세요.",
   verification: {
     other: {
       "naver-site-verification": "363CA7E3A9F2D085F027AF91E28207E5",

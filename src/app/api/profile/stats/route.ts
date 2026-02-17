@@ -40,8 +40,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     profile: {
       id: userId,
-      display_name:
-        profile?.display_name?.trim() || user.name?.trim() || null,
+      display_name: profile?.display_name?.trim() || null,
       email: profile?.email ?? user.email ?? null,
       image_url: profile?.image_url ?? user.picture ?? null,
     },

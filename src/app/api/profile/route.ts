@@ -36,8 +36,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const resolvedDisplayName =
-    profileData?.display_name?.trim() || user.name?.trim() || null;
+  const resolvedDisplayName = profileData?.display_name?.trim() || null;
   const resolvedEmail = profileData?.email ?? user.email ?? null;
   const resolvedImage = profileData?.image_url ?? user.picture ?? null;
 
