@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest, isAdminUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
-import { upsertProfile } from "@/lib/profile";
 import { validateUsername } from "@/lib/username";
 
 export const runtime = "edge";
@@ -88,15 +87,6 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: validation.reason }, { status: 400 });
     }
 
-    // Ensure a profile row exists before nickname updates.
-    await upsertProfile({
-      id: userId,
-      email: user.email,
-      image: user.picture,
-      provider: user.provider,
-      displayName: user.name,
-    });
-
     const supabase = getSupabaseAdmin();
 
     const { data: existingRows, error: existingError } = await supabase
@@ -119,11 +109,20 @@ export async function PATCH(request: NextRequest) {
 
     const nowIso = new Date().toISOString();
 
-    const { data: profileData } = await supabase
+    let { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("id, display_name, nickname_updated_at")
       .eq("id", userId)
       .maybeSingle();
+
+    if (profileError) {
+      ({ data: profileData } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .eq("id", userId)
+        .maybeSingle());
+      profileError = null;
+    }
 
     if (profileData?.nickname_updated_at) {
       const currentDisplayName =
@@ -143,6 +142,37 @@ export async function PATCH(request: NextRequest) {
             { status: 429 }
           );
         }
+      }
+    }
+
+    // If profile row doesn't exist yet, try minimal insert payloads first.
+    if (!profileData) {
+      const insertPayloads: Array<Record<string, string | null>> = [
+        { id: userId, display_name: username },
+        {
+          id: userId,
+          display_name: username,
+          email: user.email ?? null,
+          image_url: user.picture ?? null,
+        },
+        { id: userId, email: user.email ?? null, image_url: user.picture ?? null },
+        { id: userId },
+      ];
+
+      let inserted = false;
+      for (const payload of insertPayloads) {
+        const result = await supabase.from("profiles").insert(payload);
+        if (!result.error) {
+          inserted = true;
+          break;
+        }
+      }
+
+      if (!inserted) {
+        return NextResponse.json(
+          { error: "프로필 초기화에 실패했어요. 잠시 후 다시 시도해주세요." },
+          { status: 500 }
+        );
       }
     }
 
