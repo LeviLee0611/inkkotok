@@ -2,14 +2,11 @@ import AuthActions from "@/app/auth/AuthActions";
 
 export default function AuthPage() {
   return (
-    <div className="min-h-screen px-6 pb-20 pt-10 md:px-12">
-      <header className="mx-auto flex w-full max-w-3xl flex-col gap-3 rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-[var(--shadow)]">
-        <p className="text-sm font-semibold text-[var(--cocoa)]">로그인</p>
-        <h1 className="font-display text-3xl font-semibold text-[var(--ink)]">
-          Supabase OAuth 로그인
-        </h1>
-        <p className="text-sm text-zinc-600">
-          Google, Azure, Kakao로 로그인할 수 있습니다.
+    <div className="min-h-screen bg-zinc-50 px-6 pb-20 pt-16 md:px-12">
+      <header className="mx-auto w-full max-w-md">
+        <h1 className="text-2xl font-semibold text-zinc-900">로그인 또는 회원가입</h1>
+        <p className="mt-2 text-sm text-zinc-600">
+          이메일로 로그인하거나 아래 소셜 계정을 선택하세요.
         </p>
       </header>
       <AuthActions />
