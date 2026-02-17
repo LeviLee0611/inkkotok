@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromRequest, isAdminUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { upsertProfile } from "@/lib/profile";
 import { validateUsername } from "@/lib/username";
 
 export const runtime = "edge";
@@ -76,102 +77,106 @@ export async function PATCH(request: NextRequest) {
   }
   const userId = user.id;
 
-  const body = (await request.json().catch(() => null)) as
-    | { username?: string }
-    | null;
-  const username = body?.username?.trim() ?? "";
+  try {
+    const body = (await request.json().catch(() => null)) as
+      | { username?: string }
+      | null;
+    const username = body?.username?.trim() ?? "";
 
-  const validation = validateUsername(username);
-  if (!validation.ok) {
-    return NextResponse.json({ error: validation.reason }, { status: 400 });
-  }
+    const validation = validateUsername(username);
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.reason }, { status: 400 });
+    }
 
-  const supabase = getSupabaseAdmin();
+    // Ensure a profile row exists before nickname updates.
+    await upsertProfile({
+      id: userId,
+      email: user.email,
+      image: user.picture,
+      provider: user.provider,
+      displayName: user.name,
+    });
 
-  const { data: existingRows, error: existingError } = await supabase
-    .from("profiles")
-    .select("id")
-    .ilike("display_name", username)
-    .limit(10);
+    const supabase = getSupabaseAdmin();
 
-  if (existingError) {
-    return NextResponse.json({ error: "Validation failed." }, { status: 500 });
-  }
-
-  const duplicate = (existingRows ?? []).find((row) => row.id !== userId);
-  if (duplicate) {
-    return NextResponse.json(
-      { error: "이미 사용 중인 닉네임이에요." },
-      { status: 409 }
-    );
-  }
-
-  const nowIso = new Date().toISOString();
-
-  let { data: profileData, error: profileError } = await supabase
-    .from("profiles")
-    .select("id, display_name, nickname_updated_at")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (profileError) {
-    ({ data: profileData } = await supabase
+    const { data: existingRows, error: existingError } = await supabase
       .from("profiles")
       .select("id")
-      .eq("id", userId)
-      .maybeSingle());
-    profileError = null;
-  }
+      .ilike("display_name", username)
+      .limit(10);
 
-  if (profileData?.nickname_updated_at) {
-    const currentDisplayName =
-      typeof profileData.display_name === "string"
-        ? profileData.display_name.trim()
-        : "";
-    if (!currentDisplayName || currentDisplayName === username) {
-      // Allow initial setup or idempotent save without rate-limit penalty.
-    } else {
-    const lastChange = new Date(profileData.nickname_updated_at);
-    const diffMs = Date.now() - lastChange.getTime();
-    const limitMs = 30 * 24 * 60 * 60 * 1000;
-    if (diffMs < limitMs) {
-      const nextDate = new Date(lastChange.getTime() + limitMs);
+    if (existingError) {
+      return NextResponse.json({ error: "Validation failed." }, { status: 500 });
+    }
+
+    const duplicate = (existingRows ?? []).find((row) => row.id !== userId);
+    if (duplicate) {
       return NextResponse.json(
-        {
-          error: `닉네임은 30일에 1회만 변경할 수 있어요. (${nextDate.toLocaleDateString("ko-KR")} 이후 가능)`,
-        },
-        { status: 429 }
+        { error: "이미 사용 중인 닉네임이에요." },
+        { status: 409 }
       );
     }
-    }
-  }
 
-  let updateError = (
-    await supabase
+    const nowIso = new Date().toISOString();
+
+    const { data: profileData } = await supabase
       .from("profiles")
-      .update({
-        display_name: username,
-        nickname_updated_at: nowIso,
-        last_seen_at: nowIso,
-      })
+      .select("id, display_name, nickname_updated_at")
       .eq("id", userId)
-  ).error;
+      .maybeSingle();
 
-  if (updateError?.message?.includes("nickname_updated_at")) {
-    updateError = (
-      await supabase
-        .from("profiles")
-        .update({
-          display_name: username,
-          last_seen_at: nowIso,
-        })
-        .eq("id", userId)
-    ).error;
+    if (profileData?.nickname_updated_at) {
+      const currentDisplayName =
+        typeof profileData.display_name === "string"
+          ? profileData.display_name.trim()
+          : "";
+      if (currentDisplayName && currentDisplayName !== username) {
+        const lastChange = new Date(profileData.nickname_updated_at);
+        const diffMs = Date.now() - lastChange.getTime();
+        const limitMs = 30 * 24 * 60 * 60 * 1000;
+        if (diffMs < limitMs) {
+          const nextDate = new Date(lastChange.getTime() + limitMs);
+          return NextResponse.json(
+            {
+              error: `닉네임은 30일에 1회만 변경할 수 있어요. (${nextDate.toLocaleDateString("ko-KR")} 이후 가능)`,
+            },
+            { status: 429 }
+          );
+        }
+      }
+    }
+
+    // Handle schema differences safely by progressively removing optional columns.
+    const updatePayloads: Array<Record<string, string>> = [
+      { display_name: username, nickname_updated_at: nowIso, last_seen_at: nowIso },
+      { display_name: username, nickname_updated_at: nowIso },
+      { display_name: username, last_seen_at: nowIso },
+      { display_name: username },
+    ];
+
+    let updateError: { message?: string } | null = null;
+    for (const payload of updatePayloads) {
+      const result = await supabase.from("profiles").update(payload).eq("id", userId);
+      if (!result.error) {
+        updateError = null;
+        break;
+      }
+      updateError = result.error;
+    }
+
+    if (updateError) {
+      return NextResponse.json(
+        { error: updateError.message ?? "Update failed." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ username });
+  } catch (error) {
+    console.error("profile patch failed", error);
+    return NextResponse.json(
+      { error: "닉네임 저장 중 서버 오류가 발생했어요." },
+      { status: 500 }
+    );
   }
-
-  if (updateError) {
-    return NextResponse.json({ error: "Update failed." }, { status: 500 });
-  }
-
-  return NextResponse.json({ username });
 }
