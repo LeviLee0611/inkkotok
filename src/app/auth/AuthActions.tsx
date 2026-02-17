@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 
 import { authFetch } from "@/lib/auth-fetch";
-import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
+import {
+  getSupabaseBrowserClient,
+  hasSupabasePublicEnv,
+} from "@/lib/supabase-browser";
 
 type Provider = "google" | "azure" | "kakao";
 
@@ -24,7 +27,21 @@ export default function AuthActions() {
   const [state, setState] = useState<AuthState>({ email: null, loading: true });
 
   useEffect(() => {
+    if (!hasSupabasePublicEnv()) {
+      setMessage(
+        "배포 환경변수(NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY)를 확인해주세요."
+      );
+      setState({ email: null, loading: false });
+      return;
+    }
+
     const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      setMessage("Supabase 클라이언트를 생성할 수 없습니다.");
+      setState({ email: null, loading: false });
+      return;
+    }
+
     supabase.auth.getUser().then(({ data }) => {
       setState({
         email: data.user?.email ?? null,
@@ -38,6 +55,10 @@ export default function AuthActions() {
     setMessage(null);
     try {
       const supabase = getSupabaseBrowserClient();
+      if (!supabase) {
+        setMessage("Supabase 환경변수가 누락되었습니다.");
+        return;
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -59,6 +80,10 @@ export default function AuthActions() {
     setMessage(null);
     try {
       const supabase = getSupabaseBrowserClient();
+      if (!supabase) {
+        setMessage("Supabase 환경변수가 누락되었습니다.");
+        return;
+      }
       await supabase.auth.signOut();
       window.location.assign("/");
     } catch {

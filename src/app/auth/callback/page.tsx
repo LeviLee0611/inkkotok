@@ -3,12 +3,21 @@
 import { useEffect } from "react";
 
 import { authFetch } from "@/lib/auth-fetch";
-import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { getSupabaseBrowserClient, hasSupabasePublicEnv } from "@/lib/supabase-browser";
 
 export default function AuthCallbackPage() {
   useEffect(() => {
     const run = async () => {
+      if (!hasSupabasePublicEnv()) {
+        window.location.replace("/auth");
+        return;
+      }
+
       const supabase = getSupabaseBrowserClient();
+      if (!supabase) {
+        window.location.replace("/auth");
+        return;
+      }
       const url = new URL(window.location.href);
       const code = url.searchParams.get("code");
 

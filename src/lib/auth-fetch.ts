@@ -4,8 +4,9 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 export async function authFetch(input: RequestInfo | URL, init?: RequestInit) {
   const supabase = getSupabaseBrowserClient();
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
+  const token = supabase
+    ? (await supabase.auth.getSession()).data.session?.access_token
+    : null;
 
   const headers = new Headers(init?.headers ?? undefined);
   if (token) {
