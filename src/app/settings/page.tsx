@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type Toggle = {
   key: string;
@@ -27,16 +27,15 @@ const TOGGLES: Toggle[] = [
 ];
 
 export default function SettingsPage() {
-  const [values, setValues] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
+  const [values, setValues] = useState<Record<string, boolean>>(() => {
+    if (typeof window === "undefined") return {};
     const initial: Record<string, boolean> = {};
     TOGGLES.forEach((toggle) => {
       const raw = localStorage.getItem(`setting:${toggle.key}`);
       initial[toggle.key] = raw ? raw === "true" : toggle.key === "darkMode" ? false : true;
     });
-    setValues(initial);
-  }, []);
+    return initial;
+  });
 
   const setToggle = (key: string, value: boolean) => {
     setValues((prev) => ({ ...prev, [key]: value }));

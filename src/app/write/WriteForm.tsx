@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { authFetch } from "@/lib/auth-fetch";
-import { useAuthUser } from "@/lib/use-auth-user";
 
 const LOUNGES = [
   "신혼 1-3년",
@@ -13,68 +12,12 @@ const LOUNGES = [
   "재정/자산",
 ];
 
-type SessionUser = {
-  id?: string;
-  email?: string | null;
-};
-
 export default function WriteForm() {
-  const { user, loading: authLoading } = useAuthUser({ syncOnSignIn: true });
-  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
-  const [profile, setProfile] = useState<{
-    display_name?: string | null;
-    nickname_updated_at?: string | null;
-  } | null>(null);
   const [title, setTitle] = useState("");
   const [lounge, setLounge] = useState(LOUNGES[0]);
   const [content, setContent] = useState("");
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setMessage(null);
-
-    if (!user) {
-      setSessionUser(null);
-      setProfile(null);
-      setLoading(authLoading);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    setSessionUser({
-      id: user.uid,
-      email: user.email ?? null,
-    });
-
-    const loadProfile = async () => {
-      try {
-        const profileRes = await authFetch("/api/profile", {
-          cache: "no-store",
-        });
-        const profileData = (await profileRes.json()) as {
-          profile?: { display_name?: string | null; nickname_updated_at?: string | null };
-        };
-        if (!cancelled && profileRes.ok) {
-          setProfile(profileData.profile ?? null);
-        }
-      } catch {
-        if (!cancelled) setMessage("로그인 정보를 불러오지 못했어요.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    void loadProfile();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [authLoading, user]);
 
   const onSubmit = async () => {
     setMessage(null);
@@ -97,6 +40,10 @@ export default function WriteForm() {
 
       const data = (await res.json()) as { id?: string; error?: string };
       if (!res.ok) {
+        if (res.status === 401) {
+          setMessage("로그인 연동 후 글 작성이 가능해요. (Supabase 인증 준비중)");
+          return;
+        }
         setMessage(data.error ?? "글 저장에 실패했어요.");
         return;
       }
@@ -113,53 +60,12 @@ export default function WriteForm() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="mx-auto mt-8 w-full max-w-4xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 text-sm text-zinc-500 shadow-sm">
-        로그인 정보를 확인 중...
-      </div>
-    );
-  }
-
-  if (!sessionUser) {
-    return (
-      <div className="mx-auto mt-8 w-full max-w-4xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
-        <p className="text-sm font-semibold text-[var(--ink)]">
-          글 작성은 로그인 후 가능합니다.
-        </p>
-        <p className="mt-2 text-xs text-zinc-500">
-          Google 로그인 후 닉네임으로 글을 작성할 수 있어요.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <a
-            className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
-            href="/auth"
-          >
-            로그인하기
-          </a>
-          <a
-            className="rounded-full border border-[var(--border-soft)] bg-white px-4 py-2 text-sm font-semibold text-[var(--cocoa)]"
-            href="/feed"
-          >
-            피드 둘러보기
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  const hasNickname = Boolean(profile?.display_name?.trim());
-
   return (
     <main className="mx-auto mt-8 w-full max-w-4xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
-      {!hasNickname ? (
-        <div className="mb-6 rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--cocoa)]">
-          닉네임을 설정하면 피드에서 이름으로 더 잘 보여요.{" "}
-          <a className="font-semibold underline" href="/onboarding">
-            닉네임 설정하기
-          </a>
-        </div>
-      ) : null}
+      <div className="mb-6 rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-sm text-[var(--cocoa)]">
+        로그인 기능은 Supabase 연동 예정입니다. 연동 전에는 저장 시 401이
+        반환될 수 있어요.
+      </div>
       <div className="grid gap-4">
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           제목
@@ -212,7 +118,7 @@ export default function WriteForm() {
           <p className="text-xs text-zinc-500">{message}</p>
         ) : (
           <p className="text-xs text-zinc-500">
-            작성 후 바로 피드에 반영됩니다.
+            연동 완료 후 작성한 글은 바로 피드에 반영됩니다.
           </p>
         )}
       </div>

@@ -33,20 +33,7 @@ async function getDisplayNameMap(userIds: string[]) {
 
   if (profileError) throw profileError;
 
-  const { data: userRows, error: userError } = await supabase
-    .from("users")
-    .select("firebase_uid, display_name")
-    .in("firebase_uid", userIds);
-
-  if (userError) throw userError;
-
   const map = new Map<string, string | null>();
-  (userRows ?? []).forEach((user) => {
-    map.set(
-      user.firebase_uid as string,
-      ((user.display_name as string | null) ?? "").trim() || null
-    );
-  });
   (profileRows ?? []).forEach((profile) => {
     map.set(profile.id as string, (profile.display_name as string | null) ?? null);
   });

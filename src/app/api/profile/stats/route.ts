@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getUserIdFromRequest } from "@/lib/auth";
+import { getUserFromRequest } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
 export const runtime = "edge";
 
 export async function GET(request: NextRequest) {
-  const userId = await getUserIdFromRequest(request);
-  if (!userId) {
+  const user = await getUserFromRequest(request);
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const userId = user.id;
 
   const supabase = getSupabaseAdmin();
 
@@ -17,12 +18,6 @@ export async function GET(request: NextRequest) {
     .from("profiles")
     .select("id, display_name, email, image_url")
     .eq("id", userId)
-    .maybeSingle();
-
-  const { data: userRow } = await supabase
-    .from("users")
-    .select("firebase_uid, display_name, email, photo_url")
-    .eq("firebase_uid", userId)
     .maybeSingle();
 
   const { count: postCount } = await supabase
@@ -46,9 +41,9 @@ export async function GET(request: NextRequest) {
     profile: {
       id: userId,
       display_name:
-        profile?.display_name?.trim() || userRow?.display_name?.trim() || null,
-      email: profile?.email ?? userRow?.email ?? null,
-      image_url: profile?.image_url ?? userRow?.photo_url ?? null,
+        profile?.display_name?.trim() || user.name?.trim() || null,
+      email: profile?.email ?? user.email ?? null,
+      image_url: profile?.image_url ?? user.picture ?? null,
     },
     stats: {
       posts: postCount ?? 0,

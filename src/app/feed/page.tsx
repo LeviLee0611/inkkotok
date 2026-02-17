@@ -1,5 +1,5 @@
 import { listPosts } from "@/lib/posts";
-import UserPanel from "@/app/components/UserPanel";
+import Link from "next/link";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
@@ -26,17 +26,17 @@ export default async function FeedPage() {
               지금 사람들이 나누는 이야기
             </h1>
             <p className="mt-2 text-sm text-zinc-600">
-              로그인 없이 읽을 수 있어요. 글 작성과 댓글은 로그인 후
-              가능합니다.
+              로그인 없이 읽을 수 있어요. 로그인 기능은 Supabase 연동 뒤
+              제공될 예정입니다.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <a
+            <Link
               className="rounded-full border border-[var(--border-soft)] bg-white px-4 py-2 text-sm font-semibold text-[var(--cocoa)]"
               href="/"
             >
               홈으로
-            </a>
+            </Link>
             <a
               className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
               href="/write"
@@ -46,8 +46,6 @@ export default async function FeedPage() {
           </div>
         </div>
       </header>
-      <UserPanel />
-
       <section className="mx-auto mt-8 grid w-full max-w-6xl gap-4 md:grid-cols-[1.2fr_0.8fr]">
         <div className="grid gap-4">
           {feed.map((post) => (
@@ -104,7 +102,8 @@ export default async function FeedPage() {
               이용 안내
             </p>
             <ul className="mt-3 grid gap-2 text-xs text-zinc-600">
-              <li>읽기는 누구나, 글/댓글은 로그인 필요</li>
+              <li>읽기는 누구나 가능</li>
+              <li>글/댓글 로그인 기능은 Supabase 연동 예정</li>
               <li>실명, 연락처 공유 금지</li>
               <li>민감한 정보는 자동 블라인드</li>
             </ul>

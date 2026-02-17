@@ -36,18 +36,10 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const { data: userData } = await supabase
-    .from("users")
-    .select("firebase_uid, display_name, email, photo_url")
-    .eq("firebase_uid", userId)
-    .maybeSingle();
-
   const resolvedDisplayName =
-    profileData?.display_name?.trim() ||
-    userData?.display_name?.trim() ||
-    null;
-  const resolvedEmail = profileData?.email ?? userData?.email ?? null;
-  const resolvedImage = profileData?.image_url ?? userData?.photo_url ?? null;
+    profileData?.display_name?.trim() || user.name?.trim() || null;
+  const resolvedEmail = profileData?.email ?? user.email ?? null;
+  const resolvedImage = profileData?.image_url ?? user.picture ?? null;
 
   const admin = await isAdminUser(user);
 
@@ -180,18 +172,6 @@ export async function PATCH(request: NextRequest) {
 
   if (updateError) {
     return NextResponse.json({ error: "Update failed." }, { status: 500 });
-  }
-
-  const { error: usersUpdateError } = await supabase
-    .from("users")
-    .update({
-      display_name: username,
-      last_login_at: nowIso,
-    })
-    .eq("firebase_uid", userId);
-
-  if (usersUpdateError) {
-    console.error("users display_name sync failed", usersUpdateError);
   }
 
   return NextResponse.json({ username });

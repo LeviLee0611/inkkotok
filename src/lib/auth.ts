@@ -1,5 +1,4 @@
-import { verifyFirebaseBearer, type FirebaseVerifiedUser } from "@/lib/firebase-auth";
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { createClient } from "@supabase/supabase-js";
 
 type HeaderCarrier = {
   headers: Headers | Record<string, string>;
@@ -25,38 +24,63 @@ export function isAdminEmail(email: string | null | undefined) {
 }
 
 export async function isAdminUser(user: AuthUser) {
-  if (isAdminEmail(user.email)) {
-    return true;
-  }
-
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("users")
-    .select("role, status, deleted_at")
-    .eq("firebase_uid", user.id)
-    .maybeSingle();
-
-  if (error || !data) return false;
-  if (data.deleted_at) return false;
-  if (data.status && data.status !== "active") return false;
-
-  const role = typeof data.role === "string" ? data.role.toLowerCase() : "";
-  return role === "admin" || role === "moderator";
+  return isAdminEmail(user.email);
 }
 
-function toAuthUser(firebaseUser: FirebaseVerifiedUser): AuthUser {
+function getBearerToken(headers: Headers | Record<string, string>) {
+  const resolved = headers instanceof Headers ? headers : new Headers(headers);
+  const auth = resolved.get("authorization") ?? "";
+  if (!auth.startsWith("Bearer ")) return null;
+  return auth.slice(7).trim() || null;
+}
+
+function getSupabasePublicConfig() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    throw new Error("Missing Supabase public envs.");
+  }
+  return { url, anonKey };
+}
+
+function toAuthUser(supabaseUser: {
+  id: string;
+  email?: string | null;
+  app_metadata?: { provider?: string | null } | null;
+  user_metadata?: {
+    name?: string | null;
+    full_name?: string | null;
+    avatar_url?: string | null;
+    picture?: string | null;
+  } | null;
+}): AuthUser {
   return {
-    id: firebaseUser.uid,
-    email: firebaseUser.email,
-    provider: firebaseUser.provider,
-    name: firebaseUser.name,
-    picture: firebaseUser.picture,
+    id: supabaseUser.id,
+    email: supabaseUser.email ?? null,
+    provider: supabaseUser.app_metadata?.provider ?? "unknown",
+    name: supabaseUser.user_metadata?.full_name ?? supabaseUser.user_metadata?.name ?? null,
+    picture:
+      supabaseUser.user_metadata?.avatar_url ??
+      supabaseUser.user_metadata?.picture ??
+      null,
   };
 }
 
 export async function getUserFromRequest(request: HeaderCarrier): Promise<AuthUser | null> {
-  const firebaseUser = await verifyFirebaseBearer(request.headers);
-  return firebaseUser ? toAuthUser(firebaseUser) : null;
+  const token = getBearerToken(request.headers);
+  if (!token) return null;
+
+  try {
+    const { url, anonKey } = getSupabasePublicConfig();
+    const supabase = createClient(url, anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data.user) return null;
+    return toAuthUser(data.user);
+  } catch {
+    return null;
+  }
 }
 
 export async function getUserIdFromRequest(request: HeaderCarrier) {

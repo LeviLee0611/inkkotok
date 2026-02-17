@@ -9,7 +9,7 @@ export default function WritePage() {
           고민을 나눠보세요
         </h1>
         <p className="text-sm text-zinc-600">
-          닉네임을 설정한 뒤 글을 작성할 수 있어요.
+          Supabase 로그인 연동 전까지는 작성 API가 제한될 수 있어요.
         </p>
       </header>
       <WriteForm />

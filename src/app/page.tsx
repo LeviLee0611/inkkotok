@@ -40,7 +40,7 @@ export default async function Home({ searchParams }: HomePageProps) {
             </a>
             <a
               className="rounded-full px-4 py-2 transition hover:bg-[var(--lavender)]"
-              href="/auth"
+              href="/feed"
             >
               시작하기
             </a>
@@ -80,13 +80,13 @@ export default async function Home({ searchParams }: HomePageProps) {
               부부 커뮤니티
             </h1>
             <p className="max-w-xl text-base leading-7 text-zinc-600">
-              읽기는 언제나 자유롭게, 글/댓글은 로그인 후 가능. 세대별·주제별
-              라운지에서 바로 이야기를 시작하세요.
+              읽기는 언제나 자유롭게, 글/댓글 기능은 Supabase 로그인 연동 후
+              제공됩니다. 세대별·주제별 라운지에서 바로 이야기를 시작하세요.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <a
                 className="rounded-full bg-[var(--ink)] px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:translate-y-[-1px] hover:bg-zinc-800"
-                href="/auth"
+                href="/feed"
               >
                 바로 시작하기
               </a>
@@ -279,14 +279,14 @@ export default async function Home({ searchParams }: HomePageProps) {
               바로 시작할까요?
             </h3>
             <p className="mt-2 text-sm text-white/80">
-              읽기는 누구나, 글/댓글은 로그인 후 가능합니다.
+              읽기는 누구나 가능합니다. 로그인 기능은 Supabase 연동 예정입니다.
             </p>
             <div className="mt-4 flex flex-wrap gap-3">
               <a
                 className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-[var(--ink)]"
-                href="/auth"
+                href="/feed"
               >
-                로그인하고 시작
+                피드에서 시작
               </a>
               <a
                 className="rounded-full border border-white/30 px-5 py-3 text-sm font-semibold text-white/90"

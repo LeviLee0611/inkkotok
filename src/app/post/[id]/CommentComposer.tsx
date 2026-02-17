@@ -1,12 +1,9 @@
 "use client";
 
 import { useState } from "react";
-
 import { authFetch } from "@/lib/auth-fetch";
-import { useAuthUser } from "@/lib/use-auth-user";
 
 export default function CommentComposer({ postId }: { postId: string }) {
-  const { user, loading } = useAuthUser({ syncOnSignIn: true });
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -31,6 +28,10 @@ export default function CommentComposer({ postId }: { postId: string }) {
         | null;
 
       if (!res.ok) {
+        if (res.status === 401) {
+          setMessage("로그인 연동 후 댓글 작성이 가능해요. (Supabase 인증 준비중)");
+          return;
+        }
         setMessage(data?.error ?? "댓글 작성에 실패했어요.");
         return;
       }
@@ -43,17 +44,6 @@ export default function CommentComposer({ postId }: { postId: string }) {
     }
   };
 
-  if (!user) {
-    return (
-      <a
-        className="rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white"
-        href="/auth"
-      >
-        {loading ? "로그인 확인 중..." : "댓글 작성 (로그인 필요)"}
-      </a>
-    );
-  }
-
   return (
     <div className="w-full rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] p-3">
       <textarea
@@ -65,7 +55,7 @@ export default function CommentComposer({ postId }: { postId: string }) {
       />
       <div className="mt-2 flex items-center justify-between gap-2">
         <p className="text-xs text-zinc-500">
-          로그인 상태라면 바로 댓글을 남길 수 있어요.
+          Supabase 로그인 연동 후 댓글이 등록됩니다.
         </p>
         <button
           className="rounded-full bg-[var(--ink)] px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"

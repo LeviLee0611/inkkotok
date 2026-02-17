@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
+
 export default function BrandMark() {
   return (
-    <a
+    <Link
       className="fixed left-6 top-6 z-50 flex items-center gap-3 rounded-full border border-[var(--border-soft)] bg-white/90 px-3 py-2 shadow-sm backdrop-blur"
       href="/"
     >
@@ -19,6 +21,6 @@ export default function BrandMark() {
         </p>
         <p className="text-[10px] text-zinc-500">커뮤니티 홈</p>
       </div>
-    </a>
+    </Link>
   );
 }
