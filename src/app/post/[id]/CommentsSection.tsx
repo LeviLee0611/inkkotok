@@ -71,6 +71,7 @@ export default function CommentsSection({
   comments: CommentItem[];
 }) {
   const [replyOpenId, setReplyOpenId] = useState<string | null>(null);
+  const [likedCommentIds, setLikedCommentIds] = useState<Record<string, boolean>>({});
 
   const { roots, childrenByParent } = useMemo(() => {
     const map = new Map<string, CommentItem[]>();
@@ -93,31 +94,56 @@ export default function CommentsSection({
     const children = childrenByParent.get(comment.id) ?? [];
     const replyOpened = replyOpenId === comment.id;
     const canReply = depth < MAX_COMMENT_DEPTH;
+    const liked = likedCommentIds[comment.id] === true;
 
     return (
       <div key={comment.id} className="grid gap-2">
         <CommentCard comment={comment}>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {canReply ? (
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-[11px]">
               <button
                 type="button"
-                className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-[11px] font-semibold text-[var(--cocoa)]"
-                onClick={() => setReplyOpenId(replyOpened ? null : comment.id)}
+                aria-label="좋아요"
+                className={`inline-flex h-7 items-center gap-1 rounded-full border px-2.5 transition ${
+                  liked
+                    ? "border-rose-200 bg-rose-50 text-rose-600"
+                    : "border-[var(--border-soft)] bg-white text-zinc-500"
+                }`}
+                onClick={() =>
+                  setLikedCommentIds((prev) => ({
+                    ...prev,
+                    [comment.id]: !prev[comment.id],
+                  }))
+                }
               >
-                {replyOpened ? "답글 닫기" : "답글 달기"}
+                <span className="text-[13px] leading-none">{liked ? "❤️" : "🤍"}</span>
               </button>
-            ) : (
-              <span className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-[10px] font-semibold text-zinc-500">
-                최대 깊이 도달
-              </span>
-            )}
-            <span className="text-[10px] text-zinc-400">깊이 {depth}/{MAX_COMMENT_DEPTH}</span>
+              {canReply ? (
+                <button
+                  type="button"
+                  aria-label={replyOpened ? "답글 입력 닫기" : "답글 입력 열기"}
+                  className="inline-flex h-7 items-center gap-1 rounded-full border border-[var(--border-soft)] bg-white px-2.5 text-zinc-500 transition hover:text-[var(--cocoa)]"
+                  onClick={() => setReplyOpenId(replyOpened ? null : comment.id)}
+                >
+                  <span className="text-[13px] leading-none">📄</span>
+                </button>
+              ) : null}
+              <span className="text-[10px] text-zinc-400">깊이 {depth}/{MAX_COMMENT_DEPTH}</span>
+              {!canReply ? (
+                <span className="rounded-full border border-[var(--border-soft)] bg-white px-2 py-1 text-[10px] font-semibold text-zinc-500">
+                  최대 깊이
+                </span>
+              ) : null}
+            </div>
+            <div className="flex items-center">
+              <CommentManageActions
+                commentId={comment.id}
+                authorId={comment.author_id}
+                body={comment.body}
+                layout="inline"
+              />
+            </div>
           </div>
-          <CommentManageActions
-            commentId={comment.id}
-            authorId={comment.author_id}
-            body={comment.body}
-          />
         </CommentCard>
 
         {replyOpened && canReply ? (

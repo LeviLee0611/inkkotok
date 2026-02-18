@@ -106,10 +106,12 @@ export function CommentManageActions({
   commentId,
   authorId,
   body,
+  layout = "block",
 }: {
   commentId: string;
   authorId: string;
   body: string;
+  layout?: "block" | "inline";
 }) {
   const canManage = useCanManage(authorId);
   const [working, setWorking] = useState(false);
@@ -164,7 +166,7 @@ export function CommentManageActions({
   };
 
   return (
-    <div className="mt-2">
+    <div className={layout === "inline" ? "" : "mt-2"}>
       {editing ? (
         <div className="grid gap-2">
           <textarea
@@ -198,7 +200,7 @@ export function CommentManageActions({
           </div>
         </div>
       ) : (
-        <div className="flex gap-2">
+        <div className={layout === "inline" ? "flex items-center gap-2" : "flex gap-2"}>
           <button
             type="button"
             className="rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-[11px] font-semibold text-[var(--cocoa)]"

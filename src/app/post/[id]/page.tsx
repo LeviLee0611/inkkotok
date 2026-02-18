@@ -75,12 +75,25 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
         />
       </header>
 
-      <main className="mx-auto mt-6 w-full max-w-5xl rounded-[28px] border border-[var(--border-soft)] bg-white/95 p-6 shadow-sm">
-        <div className="mb-4 h-px w-full bg-gradient-to-r from-transparent via-[var(--border-soft)] to-transparent" />
-        <p className="whitespace-pre-wrap text-[15px] leading-8 text-zinc-700">
-          {post.body}
-        </p>
-        <div className="mt-5 h-px w-full bg-gradient-to-r from-transparent via-[var(--border-soft)] to-transparent" />
+      <main className="mx-auto mt-6 w-full max-w-5xl overflow-hidden rounded-[30px] border border-amber-100/80 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98)_0%,rgba(254,252,245,0.97)_42%,rgba(248,244,235,0.95)_100%)] shadow-[0_18px_45px_rgba(120,53,15,0.08)]">
+        <div className="flex items-center justify-between border-b border-amber-100/80 bg-[linear-gradient(90deg,rgba(255,255,255,0.85),rgba(255,251,235,0.8))] px-5 py-3">
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-rose-400/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
+            <span className="ml-2 text-[11px] font-medium text-zinc-500">Shared Story</span>
+          </div>
+          <span className="rounded-full border border-amber-100 bg-white/90 px-2.5 py-1 text-[11px] text-zinc-500">
+            {post.body.trim().length}자
+          </span>
+        </div>
+        <div className="p-4 sm:p-5">
+          <div className="rounded-2xl border border-amber-100/90 bg-white/92 px-4 py-5 sm:px-5">
+            <p className="whitespace-pre-wrap text-[15px] leading-8 text-zinc-700">
+              {post.body}
+            </p>
+          </div>
+        </div>
       </main>
 
       <CommentsSection postId={id} comments={comments} />
