@@ -47,6 +47,8 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
         initialTitle={post.title}
         initialLounge={post.lounge}
         initialContent={post.body}
+        initialCategoryId={post.category_id ?? 2}
+        initialMood={post.mood ?? "mixed"}
       />
     </div>
   );

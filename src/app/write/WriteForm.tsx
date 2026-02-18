@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { authFetch } from "@/lib/auth-fetch";
+import { EMOTION_CATEGORIES, MOODS, type MoodValue } from "@/lib/emotions";
 
 const LOUNGES = [
   "신혼 1-3년",
@@ -18,6 +19,8 @@ type WriteFormProps = {
   initialTitle?: string;
   initialLounge?: string;
   initialContent?: string;
+  initialCategoryId?: number;
+  initialMood?: MoodValue;
 };
 
 export default function WriteForm({
@@ -26,10 +29,17 @@ export default function WriteForm({
   initialTitle = "",
   initialLounge = LOUNGES[0],
   initialContent = "",
+  initialCategoryId = 2,
+  initialMood = "mixed",
 }: WriteFormProps) {
   const [title, setTitle] = useState(initialTitle);
   const [lounge, setLounge] = useState(initialLounge);
   const [content, setContent] = useState(initialContent);
+  const [categoryId, setCategoryId] = useState(initialCategoryId);
+  const [mood, setMood] = useState<MoodValue>(initialMood);
+  const [pollOption1, setPollOption1] = useState("");
+  const [pollOption2, setPollOption2] = useState("");
+  const [pollOption3, setPollOption3] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const isEditMode = mode === "edit";
@@ -40,6 +50,15 @@ export default function WriteForm({
       setMessage("제목과 내용을 모두 입력해주세요.");
       return;
     }
+    if (categoryId === 4) {
+      const pollOptions = [pollOption1, pollOption2, pollOption3]
+        .map((item) => item.trim())
+        .filter(Boolean);
+      if (pollOptions.length < 2) {
+        setMessage("투표 글은 항목을 최소 2개 입력해주세요.");
+        return;
+      }
+    }
 
     setSaving(true);
     try {
@@ -49,7 +68,13 @@ export default function WriteForm({
         body: JSON.stringify({
           title: title.trim(),
           lounge,
+          categoryId,
+          mood,
           content: content.trim(),
+          pollOptions:
+            categoryId === 4
+              ? [pollOption1, pollOption2, pollOption3].map((item) => item.trim()).filter(Boolean)
+              : undefined,
         }),
       });
 
@@ -96,6 +121,73 @@ export default function WriteForm({
             onChange={(event) => setTitle(event.target.value)}
           />
         </label>
+        <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
+          감정 카테고리
+          <div className="grid gap-2 sm:grid-cols-2">
+            {EMOTION_CATEGORIES.map((item) => {
+              const active = categoryId === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`rounded-2xl border px-3 py-2 text-left text-xs font-semibold transition ${
+                    active
+                      ? "border-amber-300 bg-amber-50 text-amber-900"
+                      : "border-[var(--border-soft)] bg-[var(--paper)] text-[var(--cocoa)]"
+                  }`}
+                  onClick={() => setCategoryId(item.id)}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        </label>
+        <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
+          지금 감정
+          <div className="flex flex-wrap gap-2">
+            {MOODS.map((item) => {
+              const active = mood === item.value;
+              return (
+                <button
+                  key={item.value}
+                  type="button"
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                    active
+                      ? "border-rose-200 bg-rose-50 text-rose-700"
+                      : "border-[var(--border-soft)] bg-white text-zinc-600"
+                  }`}
+                  onClick={() => setMood(item.value)}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        </label>
+        {categoryId === 4 ? (
+          <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
+            투표 항목
+            <input
+              className="rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-sm text-zinc-700"
+              placeholder="항목 1"
+              value={pollOption1}
+              onChange={(event) => setPollOption1(event.target.value)}
+            />
+            <input
+              className="rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-sm text-zinc-700"
+              placeholder="항목 2"
+              value={pollOption2}
+              onChange={(event) => setPollOption2(event.target.value)}
+            />
+            <input
+              className="rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-sm text-zinc-700"
+              placeholder="항목 3 (선택)"
+              value={pollOption3}
+              onChange={(event) => setPollOption3(event.target.value)}
+            />
+          </label>
+        ) : null}
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           라운지 선택
           <div className="relative">

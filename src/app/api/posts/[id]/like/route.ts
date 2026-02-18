@@ -1,6 +1,8 @@
 import { getUserIdFromRequest } from "@/lib/auth";
 import { togglePostLike } from "@/lib/posts";
 import { readApiErrorMessage } from "@/lib/api-error";
+import { createNotification } from "@/lib/notifications";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { NextRequest } from "next/server";
 
 export const runtime = "edge";
@@ -22,6 +24,28 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (!result) {
       return Response.json({ error: "Not found" }, { status: 404 });
     }
+
+    if (result.created) {
+      try {
+        const post = await getSupabaseAdmin()
+          .from("posts")
+          .select("author_id")
+          .eq("id", id)
+          .maybeSingle();
+        const authorId = post.data ? (post.data as { author_id: string }).author_id : null;
+        if (authorId) {
+          await createNotification({
+            userId: authorId,
+            actorUserId: userId,
+            type: "reaction",
+            postId: id,
+          });
+        }
+      } catch (notifyError) {
+        console.error("createNotification(reaction) failed", notifyError);
+      }
+    }
+
     return Response.json(result);
   } catch (error) {
     console.error("togglePostLike failed", error);

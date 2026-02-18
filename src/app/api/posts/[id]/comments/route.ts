@@ -1,9 +1,45 @@
 import { createComment, listComments } from "@/lib/posts";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { readApiErrorMessage } from "@/lib/api-error";
+import { createNotification } from "@/lib/notifications";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { NextRequest } from "next/server";
 
 export const runtime = "edge";
+
+async function findCommentAuthorId(commentId: string) {
+  const supabase = getSupabaseAdmin();
+  const primary = await supabase
+    .from("comments")
+    .select("author_id")
+    .eq("id", commentId)
+    .maybeSingle();
+  if (!primary.error && primary.data) {
+    return (primary.data as { author_id: string }).author_id;
+  }
+
+  const fallback = await supabase
+    .from("comments")
+    .select("author_id")
+    .eq("comment_id", commentId)
+    .maybeSingle();
+  if (!fallback.error && fallback.data) {
+    return (fallback.data as { author_id: string }).author_id;
+  }
+
+  return null;
+}
+
+async function findPostAuthorId(postId: string) {
+  const supabase = getSupabaseAdmin();
+  const post = await supabase
+    .from("posts")
+    .select("author_id")
+    .eq("id", postId)
+    .maybeSingle();
+  if (post.error || !post.data) return null;
+  return (post.data as { author_id: string }).author_id;
+}
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -54,6 +90,34 @@ export async function POST(request: NextRequest, context: RouteContext) {
       body: resolvedContent,
       parentId: parentId || null,
     });
+
+    try {
+      if (parentId) {
+        const parentAuthorId = await findCommentAuthorId(parentId);
+        if (parentAuthorId) {
+          await createNotification({
+            userId: parentAuthorId,
+            actorUserId: userId,
+            type: "reply",
+            postId: id,
+            commentId,
+          });
+        }
+      } else {
+        const postAuthorId = await findPostAuthorId(id);
+        if (postAuthorId) {
+          await createNotification({
+            userId: postAuthorId,
+            actorUserId: userId,
+            type: "comment",
+            postId: id,
+            commentId,
+          });
+        }
+      }
+    } catch (notifyError) {
+      console.error("createNotification(comment) failed", notifyError);
+    }
 
     return Response.json({ id: commentId }, { status: 201 });
   } catch (error) {

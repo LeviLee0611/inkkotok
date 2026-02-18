@@ -1,7 +1,11 @@
-import { getPostById, listComments } from "@/lib/posts";
+import { getPostById, getPollByPostId, listComments } from "@/lib/posts";
+import { getUserFromRequest } from "@/lib/auth";
+import { EMOTION_CATEGORIES, MOODS } from "@/lib/emotions";
+import { headers } from "next/headers";
 import CommentsSection from "./CommentsSection";
 import { PostManageActions } from "./ManageActions";
 import PostLikeButton from "./PostLikeButton";
+import PollCard from "./PollCard";
 
 export const runtime = "edge";
 
@@ -11,10 +15,19 @@ type PostDetailProps = {
 
 export default async function PostDetailPage({ params }: PostDetailProps) {
   const { id } = await params;
+  const requestHeaders = await headers();
+  const user = await getUserFromRequest({ headers: requestHeaders }).catch(() => null);
   const post = await getPostById(id).catch((error) => {
     console.error("post getPostById failed", error);
     return null;
   });
+  const poll =
+    post?.category_id === 4
+      ? await getPollByPostId(id, user?.id ?? null).catch((error) => {
+          console.error("post getPollByPostId failed", error);
+          return null;
+        })
+      : null;
   const comments = post
     ? await listComments(id, 100).catch((error) => {
         console.error("post listComments failed", error);
@@ -44,6 +57,16 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
           <p className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-[var(--cocoa)]">
             {post.lounge}
           </p>
+          {typeof post.category_id === "number" ? (
+            <span className="inline-flex rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-xs text-zinc-600">
+              {EMOTION_CATEGORIES.find((item) => item.id === post.category_id)?.label ?? "카테고리"}
+            </span>
+          ) : null}
+          {post.mood ? (
+            <span className="inline-flex rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-xs text-rose-700">
+              {MOODS.find((item) => item.value === post.mood)?.label ?? post.mood}
+            </span>
+          ) : null}
           <span className="text-[11px] text-zinc-500">읽는 시간 약 2분</span>
         </div>
         <h1 className="font-display text-3xl font-semibold text-[var(--ink)]">
@@ -66,8 +89,10 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
           작성자 · {post.author?.[0]?.display_name ?? post.author_id.slice(0, 6)}
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
-          <PostLikeButton postId={id} initialLikeCount={post.like_count ?? 0} />
-          <span>댓글 {comments.length}</span>
+          <PostLikeButton postId={id} initialLikeCount={post.reactions_count ?? post.like_count ?? 0} />
+          <span>댓글 {post.comments_count ?? comments.length}</span>
+          <span>참여 {post.votes_count ?? 0}</span>
+          <span>HOT {Math.round(post.hot_score ?? 0)}</span>
           <span>방금 전</span>
         </div>
         <PostManageActions
@@ -96,6 +121,8 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
           </div>
         </div>
       </main>
+
+      {poll ? <PollCard postId={id} initialPoll={poll} /> : null}
 
       <CommentsSection postId={id} comments={comments} />
 

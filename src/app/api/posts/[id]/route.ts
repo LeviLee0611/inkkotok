@@ -4,6 +4,7 @@ import { getUserFromRequest, isAdminUser } from "@/lib/auth";
 import { NextRequest } from "next/server";
 
 export const runtime = "edge";
+const VALID_MOODS = new Set(["sad", "angry", "anxious", "mixed", "hopeful", "happy"]);
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -45,13 +46,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   const body = (await request.json().catch(() => null)) as
-    | { title?: string; lounge?: string; content?: string }
+    | { title?: string; lounge?: string; content?: string; categoryId?: number; mood?: string }
     | null;
   if (!body) {
     return Response.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const updates: Record<string, string> = {};
+  const updates: Record<string, string | number> = {};
   if (typeof body.title === "string" && body.title.trim()) {
     updates.title = body.title.trim();
   }
@@ -61,6 +62,18 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   if (typeof body.content === "string" && body.content.trim()) {
     updates.body = body.content.trim();
   }
+  if (body.categoryId !== undefined) {
+    if (!Number.isInteger(body.categoryId) || body.categoryId < 1 || body.categoryId > 5) {
+      return Response.json({ error: "categoryId must be 1..5." }, { status: 400 });
+    }
+    updates.category_id = body.categoryId;
+  }
+  if (body.mood !== undefined) {
+    if (!VALID_MOODS.has(body.mood)) {
+      return Response.json({ error: "Invalid mood." }, { status: 400 });
+    }
+    updates.mood = body.mood;
+  }
 
   if (Object.keys(updates).length === 0) {
     return Response.json(
@@ -69,7 +82,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     );
   }
 
-  const updatePayloads: Array<Record<string, string>> = [
+  const updatePayloads: Array<Record<string, string | number>> = [
     { ...updates, updated_at: new Date().toISOString() },
     updates,
   ];

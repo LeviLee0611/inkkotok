@@ -8,6 +8,12 @@ export type PostRecord = {
   title: string;
   body: string;
   lounge: string;
+  category_id?: number;
+  mood?: "sad" | "angry" | "anxious" | "mixed" | "hopeful" | "happy";
+  comments_count?: number;
+  reactions_count?: number;
+  votes_count?: number;
+  hot_score?: number;
   like_count: number;
   created_at: string;
   updated_at: string;
@@ -21,6 +27,21 @@ export type CommentRecord = {
   body: string;
   parent_id?: string | null;
   created_at: string;
+};
+
+export type PollOptionRecord = {
+  id: string;
+  label: string;
+  vote_count: number;
+  sort_order: number;
+};
+
+export type PollRecord = {
+  post_id: string;
+  closes_at: string | null;
+  options: PollOptionRecord[];
+  total_votes: number;
+  viewer_option_id: string | null;
 };
 
 function isMissingCommentsIdError(error: unknown) {
@@ -48,6 +69,43 @@ function isMissingPostReactionsTableError(error: unknown) {
     typeof maybe.details === "string" ? maybe.details : ""
   }`.toLowerCase();
   return msg.includes("post_reactions") && msg.includes("does not exist");
+}
+
+function isMissingPostReactionsTypeError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const maybe = error as { message?: unknown; details?: unknown };
+  const msg = `${typeof maybe.message === "string" ? maybe.message : ""} ${
+    typeof maybe.details === "string" ? maybe.details : ""
+  }`.toLowerCase();
+  return msg.includes("reaction_type") && msg.includes("does not exist");
+}
+
+function isMissingPollsTableError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const maybe = error as { message?: unknown; details?: unknown };
+  const msg = `${typeof maybe.message === "string" ? maybe.message : ""} ${
+    typeof maybe.details === "string" ? maybe.details : ""
+  }`.toLowerCase();
+  return (
+    msg.includes("polls") ||
+    msg.includes("poll_options") ||
+    msg.includes("poll_votes")
+  ) && msg.includes("does not exist");
+}
+
+function normalizePollOptions(options: string[]) {
+  const unique = Array.from(
+    new Set(
+      options
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+        .slice(0, 6)
+    )
+  );
+  if (unique.length < 2) {
+    throw new Error("투표 항목은 최소 2개가 필요합니다.");
+  }
+  return unique;
 }
 
 type AuthorProfile = {
@@ -193,13 +251,29 @@ async function getPostLikeCount(postId: string, strict = false) {
   return count ?? 0;
 }
 
-export async function listPosts(limit = 20) {
+export async function listPosts(
+  limit = 20,
+  options?: { categoryId?: number; sort?: "latest" | "hot" }
+) {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from("posts")
-    .select("id, author_id, title, lounge, body, created_at")
-    .order("created_at", { ascending: false })
+    .select(
+      "id, author_id, title, lounge, body, category_id, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
+    )
     .limit(limit);
+
+  if (typeof options?.categoryId === "number") {
+    query = query.eq("category_id", options.categoryId);
+  }
+
+  if (options?.sort === "hot") {
+    query = query.order("hot_score", { ascending: false }).order("created_at", { ascending: false });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
 
@@ -224,14 +298,18 @@ export async function getPostById(id: string) {
   const supabase = getSupabaseAdmin();
   let { data, error } = await supabase
     .from("posts")
-    .select("id, title, lounge, body, author_id, created_at")
+    .select(
+      "id, title, lounge, body, author_id, category_id, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
+    )
     .eq("id", id)
     .maybeSingle();
 
   if (error) {
     ({ data, error } = await supabase
       .from("posts")
-      .select("id, title, lounge, body, author_id, created_at")
+      .select(
+        "id, title, lounge, body, author_id, category_id, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
+      )
       .eq("id", id)
       .maybeSingle());
   }
@@ -329,16 +407,25 @@ export async function createPost(input: {
   title: string;
   body: string;
   lounge: string;
+  categoryId?: number;
+  mood?: "sad" | "angry" | "anxious" | "mixed" | "hopeful" | "happy";
 }) {
   const supabase = getSupabaseAdmin();
+  const payload: Record<string, string | number> = {
+    author_id: input.authorId,
+    title: input.title,
+    body: input.body,
+    lounge: input.lounge,
+  };
+  if (typeof input.categoryId === "number") {
+    payload.category_id = input.categoryId;
+  }
+  if (input.mood) {
+    payload.mood = input.mood;
+  }
   const { data, error } = await supabase
     .from("posts")
-    .insert({
-      author_id: input.authorId,
-      title: input.title,
-      body: input.body,
-      lounge: input.lounge,
-    })
+    .insert(payload)
     .select("id")
     .single();
 
@@ -434,12 +521,22 @@ export async function togglePostLike(postId: string, userId: string) {
   if (postError) throw postError;
   if (!post) return null;
 
-  const existing = await supabase
+  let existing = await supabase
     .from("post_reactions")
     .select("post_id, user_id")
     .eq("post_id", postId)
     .eq("user_id", userId)
+    .eq("reaction_type", "hug")
     .maybeSingle();
+
+  if (existing.error && isMissingPostReactionsTypeError(existing.error)) {
+    existing = await supabase
+      .from("post_reactions")
+      .select("post_id, user_id")
+      .eq("post_id", postId)
+      .eq("user_id", userId)
+      .maybeSingle();
+  }
 
   if (existing.error) {
     if (isMissingPostReactionsTableError(existing.error)) {
@@ -448,10 +545,14 @@ export async function togglePostLike(postId: string, userId: string) {
     throw existing.error;
   }
 
+  let created = false;
   if (!existing.data) {
-    const add = await supabase
+    let add = await supabase
       .from("post_reactions")
-      .insert({ post_id: postId, user_id: userId });
+      .insert({ post_id: postId, user_id: userId, reaction_type: "hug" });
+    if (add.error && isMissingPostReactionsTypeError(add.error)) {
+      add = await supabase.from("post_reactions").insert({ post_id: postId, user_id: userId });
+    }
     if (add.error) {
       if (isMissingPostReactionsTableError(add.error)) {
         throw new Error("post_reactions table is missing. Run docs/sql/post-reactions.sql");
@@ -460,8 +561,164 @@ export async function togglePostLike(postId: string, userId: string) {
         throw add.error;
       }
     }
+    created = true;
   }
 
   const likeCount = await getPostLikeCount(postId, true);
-  return { liked: true, likeCount };
+  return { liked: true, likeCount, created };
+}
+
+export async function createPollForPost(input: {
+  postId: string;
+  options: string[];
+  closesAt?: string | null;
+}) {
+  const options = normalizePollOptions(input.options);
+  const supabase = getSupabaseAdmin();
+
+  const pollInsert = await supabase.from("polls").insert({
+    post_id: input.postId,
+    closes_at: input.closesAt ?? null,
+  });
+  if (pollInsert.error) {
+    if (isMissingPollsTableError(pollInsert.error)) {
+      throw new Error("poll tables are missing. Run docs/sql/emotion-community-mvp.sql");
+    }
+    throw pollInsert.error;
+  }
+
+  const optionRows = options.map((label, index) => ({
+    poll_post_id: input.postId,
+    label,
+    sort_order: index + 1,
+  }));
+  const optionInsert = await supabase.from("poll_options").insert(optionRows);
+  if (optionInsert.error) throw optionInsert.error;
+}
+
+export async function getPollByPostId(postId: string, viewerUserId?: string | null) {
+  const supabase = getSupabaseAdmin();
+  const poll = await supabase
+    .from("polls")
+    .select("post_id, closes_at")
+    .eq("post_id", postId)
+    .maybeSingle();
+
+  if (poll.error) {
+    if (isMissingPollsTableError(poll.error)) return null;
+    throw poll.error;
+  }
+  if (!poll.data) return null;
+
+  const optionsResult = await supabase
+    .from("poll_options")
+    .select("id, label, vote_count, sort_order")
+    .eq("poll_post_id", postId)
+    .order("sort_order", { ascending: true });
+  if (optionsResult.error) throw optionsResult.error;
+
+  let viewerOptionId: string | null = null;
+  if (viewerUserId) {
+    const voteResult = await supabase
+      .from("poll_votes")
+      .select("option_id")
+      .eq("poll_post_id", postId)
+      .eq("user_id", viewerUserId)
+      .maybeSingle();
+    if (!voteResult.error && voteResult.data) {
+      viewerOptionId = (voteResult.data as { option_id: string }).option_id;
+    }
+  }
+
+  const options = ((optionsResult.data ?? []) as PollOptionRecord[]).map((item) => ({
+    ...item,
+    vote_count: item.vote_count ?? 0,
+  }));
+  const totalVotes = options.reduce((sum, item) => sum + (item.vote_count ?? 0), 0);
+
+  return {
+    post_id: (poll.data as { post_id: string }).post_id,
+    closes_at: ((poll.data as { closes_at?: string | null }).closes_at ?? null) as string | null,
+    options,
+    total_votes: totalVotes,
+    viewer_option_id: viewerOptionId,
+  } as PollRecord;
+}
+
+async function refreshPollOptionVoteCounts(postId: string) {
+  const supabase = getSupabaseAdmin();
+  const optionsResult = await supabase
+    .from("poll_options")
+    .select("id")
+    .eq("poll_post_id", postId);
+  if (optionsResult.error) throw optionsResult.error;
+
+  const votesResult = await supabase
+    .from("poll_votes")
+    .select("option_id")
+    .eq("poll_post_id", postId);
+  if (votesResult.error) throw votesResult.error;
+
+  const counts = new Map<string, number>();
+  (votesResult.data ?? []).forEach((row) => {
+    const optionId = (row as { option_id: string }).option_id;
+    counts.set(optionId, (counts.get(optionId) ?? 0) + 1);
+  });
+
+  for (const row of optionsResult.data ?? []) {
+    const optionId = (row as { id: string }).id;
+    const count = counts.get(optionId) ?? 0;
+    const update = await supabase
+      .from("poll_options")
+      .update({ vote_count: count })
+      .eq("id", optionId);
+    if (update.error) throw update.error;
+  }
+}
+
+export async function votePoll(input: { postId: string; optionId: string; userId: string }) {
+  const supabase = getSupabaseAdmin();
+  const poll = await supabase
+    .from("polls")
+    .select("post_id, closes_at")
+    .eq("post_id", input.postId)
+    .maybeSingle();
+  if (poll.error) {
+    if (isMissingPollsTableError(poll.error)) {
+      throw new Error("poll tables are missing. Run docs/sql/emotion-community-mvp.sql");
+    }
+    throw poll.error;
+  }
+  if (!poll.data) return null;
+
+  const closesAt = ((poll.data as { closes_at?: string | null }).closes_at ?? null) as
+    | string
+    | null;
+  if (closesAt && new Date(closesAt).getTime() < Date.now()) {
+    throw new Error("투표가 종료되었습니다.");
+  }
+
+  const option = await supabase
+    .from("poll_options")
+    .select("id")
+    .eq("poll_post_id", input.postId)
+    .eq("id", input.optionId)
+    .maybeSingle();
+  if (option.error) throw option.error;
+  if (!option.data) {
+    throw new Error("유효하지 않은 투표 항목입니다.");
+  }
+
+  const upsert = await supabase.from("poll_votes").upsert(
+    {
+      poll_post_id: input.postId,
+      option_id: input.optionId,
+      user_id: input.userId,
+    },
+    { onConflict: "poll_post_id,user_id" }
+  );
+  if (upsert.error) throw upsert.error;
+
+  await refreshPollOptionVoteCounts(input.postId);
+  return getPollByPostId(input.postId, input.userId);
 }

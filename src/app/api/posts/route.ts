@@ -1,12 +1,23 @@
-import { listPosts, createPost } from "@/lib/posts";
+import { listPosts, createPollForPost, createPost } from "@/lib/posts";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { readApiErrorMessage } from "@/lib/api-error";
 import { NextRequest } from "next/server";
 
 export const runtime = "edge";
 
-export async function GET() {
-  const posts = await listPosts(30);
+const VALID_MOODS = new Set(["sad", "angry", "anxious", "mixed", "hopeful", "happy"]);
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const categoryRaw = searchParams.get("categoryId");
+  const sortRaw = searchParams.get("sort");
+
+  const categoryId =
+    categoryRaw && Number.isInteger(Number(categoryRaw)) ? Number(categoryRaw) : undefined;
+  const sort = sortRaw === "hot" ? "hot" : "latest";
+
+  const posts = await listPosts(30, { categoryId, sort });
   return Response.json(posts);
 }
 
@@ -21,10 +32,14 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const { title, lounge, content } = body as {
+  const { title, lounge, content, categoryId, mood, pollOptions, pollClosesAt } = body as {
     title?: string;
     lounge?: string;
     content?: string;
+    categoryId?: number;
+    mood?: string;
+    pollOptions?: string[];
+    pollClosesAt?: string;
   };
 
   if (!title || !lounge || !content) {
@@ -34,13 +49,44 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (categoryId !== undefined && (!Number.isInteger(categoryId) || categoryId < 1 || categoryId > 5)) {
+    return Response.json({ error: "categoryId must be 1..5." }, { status: 400 });
+  }
+  if (mood !== undefined && !VALID_MOODS.has(mood)) {
+    return Response.json({ error: "Invalid mood." }, { status: 400 });
+  }
+  if (categoryId === 4) {
+    if (!Array.isArray(pollOptions)) {
+      return Response.json({ error: "pollOptions are required for poll category." }, { status: 400 });
+    }
+    const normalized = pollOptions.map((item) => item.trim()).filter(Boolean);
+    if (normalized.length < 2) {
+      return Response.json({ error: "pollOptions must have at least 2 items." }, { status: 400 });
+    }
+  }
+
   try {
     const id = await createPost({
       authorId: userId,
       title,
       lounge,
       body: content,
+      categoryId,
+      mood: mood as "sad" | "angry" | "anxious" | "mixed" | "hopeful" | "happy" | undefined,
     });
+
+    if (categoryId === 4 && Array.isArray(pollOptions)) {
+      try {
+        await createPollForPost({
+          postId: id,
+          options: pollOptions,
+          closesAt: pollClosesAt ?? null,
+        });
+      } catch (pollError) {
+        await getSupabaseAdmin().from("posts").delete().eq("id", id);
+        throw pollError;
+      }
+    }
 
     return Response.json({ id }, { status: 201 });
   } catch (error) {
