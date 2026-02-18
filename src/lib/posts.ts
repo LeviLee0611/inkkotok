@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { MAX_COMMENT_DEPTH } from "@/lib/comment-thread";
 
 export type PostRecord = {
   id: string;
@@ -17,6 +18,7 @@ export type CommentRecord = {
   author_id: string;
   author?: { display_name: string | null; image_url: string | null }[] | null;
   body: string;
+  parent_id?: string | null;
   created_at: string;
 };
 
@@ -29,10 +31,92 @@ function isMissingCommentsIdError(error: unknown) {
   return msg.includes("comments.id") || msg.includes("column id does not exist");
 }
 
+function isMissingCommentsParentIdError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const maybe = error as { message?: unknown; details?: unknown };
+  const msg = `${typeof maybe.message === "string" ? maybe.message : ""} ${
+    typeof maybe.details === "string" ? maybe.details : ""
+  }`.toLowerCase();
+  return msg.includes("parent_id");
+}
+
 type AuthorProfile = {
   display_name: string | null;
   image_url: string | null;
 };
+
+type CommentLink = {
+  id: string;
+  post_id: string;
+  parent_id: string | null;
+};
+
+async function getCommentLinkById(
+  commentId: string,
+  supabase = getSupabaseAdmin()
+): Promise<CommentLink | null> {
+  const primary = await supabase
+    .from("comments")
+    .select("id, post_id, parent_id")
+    .eq("id", commentId)
+    .maybeSingle();
+
+  if (!primary.error) {
+    if (!primary.data) return null;
+    return {
+      id: (primary.data as { id: string }).id,
+      post_id: (primary.data as { post_id: string }).post_id,
+      parent_id: ((primary.data as { parent_id?: string | null }).parent_id ?? null) as
+        | string
+        | null,
+    };
+  }
+
+  if (!isMissingCommentsIdError(primary.error)) {
+    throw primary.error;
+  }
+
+  const fallback = await supabase
+    .from("comments")
+    .select("comment_id, post_id, parent_id")
+    .eq("comment_id", commentId)
+    .maybeSingle();
+  if (fallback.error) throw fallback.error;
+  if (!fallback.data) return null;
+  return {
+    id: (fallback.data as { comment_id: string }).comment_id,
+    post_id: (fallback.data as { post_id: string }).post_id,
+    parent_id: ((fallback.data as { parent_id?: string | null }).parent_id ?? null) as
+      | string
+      | null,
+  };
+}
+
+async function assertReplyDepth(postId: string, parentId: string) {
+  const supabase = getSupabaseAdmin();
+  let currentId: string | null = parentId;
+  let parentDepth = 0;
+  let guard = 0;
+
+  while (currentId) {
+    guard += 1;
+    if (guard > MAX_COMMENT_DEPTH + 20) {
+      throw new Error("Invalid comment tree.");
+    }
+    const node = await getCommentLinkById(currentId, supabase);
+    if (!node) {
+      throw new Error("Parent comment not found.");
+    }
+    if (node.post_id !== postId) {
+      throw new Error("Reply parent must be in the same post.");
+    }
+    parentDepth += 1;
+    if (parentDepth >= MAX_COMMENT_DEPTH) {
+      throw new Error(`Reply depth exceeds max depth ${MAX_COMMENT_DEPTH}.`);
+    }
+    currentId = node.parent_id;
+  }
+}
 
 async function getAuthorProfileMap(userIds: string[]) {
   if (!userIds.length) {
@@ -118,24 +202,53 @@ export async function listComments(postId: string, limit = 50) {
   const supabase = getSupabaseAdmin();
   let { data, error } = await supabase
     .from("comments")
-    .select("id, post_id, author_id, body, created_at")
+    .select("id, post_id, author_id, body, parent_id, created_at")
     .eq("post_id", postId)
     .order("created_at", { ascending: true })
     .limit(limit);
 
-  if (error && isMissingCommentsIdError(error)) {
-    const fallback = await supabase
+  if (error && isMissingCommentsParentIdError(error)) {
+    const retry = await supabase
       .from("comments")
-      .select("comment_id, post_id, author_id, body, created_at")
+      .select("id, post_id, author_id, body, created_at")
       .eq("post_id", postId)
       .order("created_at", { ascending: true })
       .limit(limit);
-    if (fallback.error) throw fallback.error;
-    data = (fallback.data ?? []).map((row) => ({
-      ...row,
-      id: (row as { comment_id?: string }).comment_id,
-    }));
+    if (retry.error) throw retry.error;
+    data = (retry.data ?? []).map((row) => ({ ...row, parent_id: null }));
     error = null;
+  }
+
+  if (error && isMissingCommentsIdError(error)) {
+    const fallback = await supabase
+      .from("comments")
+      .select("comment_id, post_id, author_id, body, parent_id, created_at")
+      .eq("post_id", postId)
+      .order("created_at", { ascending: true })
+      .limit(limit);
+    if (fallback.error && isMissingCommentsParentIdError(fallback.error)) {
+      const retry = await supabase
+        .from("comments")
+        .select("comment_id, post_id, author_id, body, created_at")
+        .eq("post_id", postId)
+        .order("created_at", { ascending: true })
+        .limit(limit);
+      if (retry.error) throw retry.error;
+      data = (retry.data ?? []).map((row) => ({
+        ...row,
+        id: (row as { comment_id?: string }).comment_id,
+        parent_id: null,
+      }));
+      error = null;
+    } else if (fallback.error) {
+      throw fallback.error;
+    } else {
+      data = (fallback.data ?? []).map((row) => ({
+        ...row,
+        id: (row as { comment_id?: string }).comment_id,
+      }));
+      error = null;
+    }
   }
 
   if (error) throw error;
@@ -181,31 +294,70 @@ export async function createComment(input: {
   postId: string;
   authorId: string;
   body: string;
+  parentId?: string | null;
 }) {
+  if (input.parentId) {
+    await assertReplyDepth(input.postId, input.parentId);
+  }
+
   const supabase = getSupabaseAdmin();
   const commentId = crypto.randomUUID();
+  const payload: Record<string, string | null> = {
+    id: commentId,
+    post_id: input.postId,
+    author_id: input.authorId,
+    body: input.body,
+  };
+  if (input.parentId) {
+    payload.parent_id = input.parentId;
+  }
+
   const primary = await supabase
     .from("comments")
-    .insert({
-      id: commentId,
-      post_id: input.postId,
-      author_id: input.authorId,
-      body: input.body,
-    })
+    .insert(payload)
     .select("id")
     .single();
 
+  if (primary.error && isMissingCommentsParentIdError(primary.error)) {
+    if (input.parentId) {
+      throw new Error("comments.parent_id column is required for replies.");
+    }
+    const noParentPayload = { ...payload };
+    delete noParentPayload.parent_id;
+    const retry = await supabase.from("comments").insert(noParentPayload).select("id").single();
+    if (retry.error) throw retry.error;
+    return (retry.data as { id: string }).id;
+  }
+
   if (primary.error && isMissingCommentsIdError(primary.error)) {
+    const fallbackPayload: Record<string, string | null> = {
+      comment_id: commentId,
+      post_id: input.postId,
+      author_id: input.authorId,
+      body: input.body,
+    };
+    if (input.parentId) {
+      fallbackPayload.parent_id = input.parentId;
+    }
     const fallback = await supabase
       .from("comments")
-      .insert({
-        comment_id: commentId,
-        post_id: input.postId,
-        author_id: input.authorId,
-        body: input.body,
-      })
+      .insert(fallbackPayload)
       .select("comment_id")
       .single();
+    if (fallback.error && isMissingCommentsParentIdError(fallback.error)) {
+      if (input.parentId) {
+        throw new Error("comments.parent_id column is required for replies.");
+      }
+      const noParentPayload = { ...fallbackPayload };
+      delete noParentPayload.parent_id;
+      const retry = await supabase
+        .from("comments")
+        .insert(noParentPayload)
+        .select("comment_id")
+        .single();
+      if (retry.error) throw retry.error;
+      return (retry.data as { comment_id: string }).comment_id;
+    }
     if (fallback.error) throw fallback.error;
     return (fallback.data as { comment_id: string }).comment_id;
   }

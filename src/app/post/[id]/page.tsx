@@ -1,6 +1,6 @@
 import { getPostById, listComments } from "@/lib/posts";
-import CommentComposer from "./CommentComposer";
-import { CommentManageActions, PostManageActions } from "./ManageActions";
+import CommentsSection from "./CommentsSection";
+import { PostManageActions } from "./ManageActions";
 
 export const runtime = "edge";
 
@@ -83,44 +83,7 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
         <div className="mt-5 h-px w-full bg-gradient-to-r from-transparent via-[var(--border-soft)] to-transparent" />
       </main>
 
-      <section className="mx-auto mt-6 w-full max-w-5xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <h2 className="text-lg font-semibold text-[var(--ink)]">댓글</h2>
-          <CommentComposer postId={id} />
-        </div>
-        <div className="mt-4 grid gap-3">
-          {comments.map((comment) => (
-            <div
-              key={comment.id}
-              className="rounded-2xl border border-[var(--border-soft)] bg-gradient-to-b from-white to-[var(--paper)] px-4 py-3 text-xs text-zinc-600"
-            >
-              <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-[var(--cocoa)]">
-                <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-[var(--border-soft)] bg-white">
-                  {comment.author?.[0]?.image_url ? (
-                    <img
-                      src={comment.author[0].image_url}
-                      alt="댓글 작성자 프로필"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span>
-                      {(comment.author?.[0]?.display_name ?? "익").slice(0, 1)}
-                    </span>
-                  )}
-                </span>
-                {comment.author?.[0]?.display_name ??
-                  comment.author_id.slice(0, 6)}
-              </div>
-              <p className="mt-1">{comment.body}</p>
-              <CommentManageActions
-                commentId={comment.id}
-                authorId={comment.author_id}
-                body={comment.body}
-              />
-            </div>
-          ))}
-        </div>
-      </section>
+      <CommentsSection postId={id} comments={comments} />
 
       <footer className="mx-auto mt-6 flex w-full max-w-5xl flex-wrap gap-3">
         <a

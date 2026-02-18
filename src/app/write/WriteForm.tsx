@@ -100,9 +100,10 @@ export default function WriteForm({
           라운지 선택
           <div className="relative">
             <select
-              className="h-11 w-full appearance-none rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 pr-10 text-sm font-medium text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+              className="h-12 w-full appearance-none rounded-2xl border border-amber-200/70 bg-[linear-gradient(135deg,rgba(255,251,235,0.95),rgba(255,255,255,0.97))] px-4 pr-12 text-sm font-semibold text-zinc-700 shadow-[0_8px_22px_rgba(120,53,15,0.08)] outline-none transition focus:border-amber-300 focus:shadow-[0_0_0_4px_rgba(251,191,36,0.18)]"
               value={lounge}
               onChange={(event) => setLounge(event.target.value)}
+              aria-label="라운지 선택"
             >
               {LOUNGES.map((label) => (
                 <option key={label} value={label}>
@@ -110,27 +111,52 @@ export default function WriteForm({
                 </option>
               ))}
             </select>
-            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-zinc-500">
-              ▼
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-amber-700/80">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path
+                  d="M5.25 7.5L10 12.25L14.75 7.5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </span>
           </div>
+          <p className="px-1 text-[11px] font-normal text-zinc-500">
+            비슷한 상황의 라운지를 고르면 더 잘 공감받을 수 있어요.
+          </p>
         </label>
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           내용
-          <div className="rounded-2xl border border-[var(--border-soft)] bg-gradient-to-b from-white via-white to-[var(--paper)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-            <div className="mb-2 flex items-center justify-between px-1 text-[11px] text-zinc-500">
-              <span className="font-medium">본문</span>
-              <span>{content.trim().length}자</span>
+          <div className="overflow-hidden rounded-3xl border border-amber-100/80 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98)_0%,rgba(254,252,245,0.97)_42%,rgba(248,244,235,0.95)_100%)] shadow-[0_18px_45px_rgba(120,53,15,0.09)]">
+            <div className="flex items-center justify-between border-b border-amber-100/80 bg-[linear-gradient(90deg,rgba(255,255,255,0.82),rgba(255,251,235,0.78))] px-4 py-2 backdrop-blur">
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-rose-400/80" />
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
+                <span className="ml-2 text-[11px] font-medium text-zinc-500">Private Note</span>
+              </div>
+              <span className="rounded-full border border-amber-100 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-zinc-500">
+                {content.trim().length}자
+              </span>
             </div>
-            <textarea
-              className="min-h-[260px] w-full rounded-xl border border-[var(--border-soft)] bg-white px-4 py-3 text-sm leading-7 text-zinc-700 outline-none transition focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_rgba(245,158,11,0.15)]"
-              placeholder="상황과 감정을 자유롭게 적어주세요"
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-            />
-            <p className="mt-2 px-1 text-[11px] font-normal text-zinc-500">
-              줄바꿈과 문단을 나눠 쓰면 읽기 쉬워져요.
-            </p>
+            <div className="p-3 sm:p-4">
+              <textarea
+                className="min-h-[300px] w-full rounded-2xl border border-amber-100/90 bg-white/92 px-4 py-4 text-[15px] leading-7 text-zinc-700 outline-none transition placeholder:text-zinc-400 focus:border-amber-300 focus:bg-white focus:shadow-[0_0_0_4px_rgba(251,191,36,0.16)] sm:min-h-[340px]"
+                placeholder="오늘 있었던 일, 내 감정, 상대와의 상황을 차분히 적어보세요."
+                value={content}
+                onChange={(event) => setContent(event.target.value)}
+              />
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1">
+                <p className="text-[11px] font-normal text-zinc-500">
+                  문단을 나눠 쓰면 다른 사람이 더 쉽게 읽을 수 있어요.
+                </p>
+                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-amber-700/80">
+                  저장 시 즉시 반영
+                </span>
+              </div>
+            </div>
           </div>
         </label>
       </div>

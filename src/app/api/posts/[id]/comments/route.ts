@@ -29,7 +29,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   const { content } = body as {
     content?: string;
+    parentId?: string;
   };
+  const parentId =
+    typeof (body as { parentId?: string }).parentId === "string"
+      ? (body as { parentId?: string }).parentId!.trim()
+      : "";
   const resolvedContent = content?.trim() ?? "";
 
   if (!resolvedContent) {
@@ -38,18 +43,28 @@ export async function POST(request: NextRequest, context: RouteContext) {
       { status: 400 }
     );
   }
+  if (parentId && parentId.length < 8) {
+    return Response.json({ error: "invalid parentId." }, { status: 400 });
+  }
 
   try {
     const commentId = await createComment({
       postId: id,
       authorId: userId,
       body: resolvedContent,
+      parentId: parentId || null,
     });
 
     return Response.json({ id: commentId }, { status: 201 });
   } catch (error) {
     console.error("createComment failed", error);
     const message = readApiErrorMessage(error, "Comment create failed.");
-    return Response.json({ error: message }, { status: 500 });
+    const lower = message.toLowerCase();
+    const badRequest =
+      lower.includes("depth") ||
+      lower.includes("parent") ||
+      lower.includes("same post") ||
+      lower.includes("invalid");
+    return Response.json({ error: message }, { status: badRequest ? 400 : 500 });
   }
 }
