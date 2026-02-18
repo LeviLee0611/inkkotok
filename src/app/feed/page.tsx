@@ -81,7 +81,7 @@ export default async function FeedPage() {
                   </span>
                   작성자 · {post.author?.[0]?.display_name ?? post.id.slice(0, 6)}
                 </span>
-                <span>공감 32</span>
+                <span>공감 {post.like_count ?? 0}</span>
                 <span>댓글 12</span>
               </div>
             </article>

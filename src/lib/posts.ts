@@ -8,6 +8,7 @@ export type PostRecord = {
   title: string;
   body: string;
   lounge: string;
+  like_count: number;
   created_at: string;
   updated_at: string;
 };
@@ -38,6 +39,15 @@ function isMissingCommentsParentIdError(error: unknown) {
     typeof maybe.details === "string" ? maybe.details : ""
   }`.toLowerCase();
   return msg.includes("parent_id");
+}
+
+function isMissingPostReactionsTableError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const maybe = error as { message?: unknown; details?: unknown };
+  const msg = `${typeof maybe.message === "string" ? maybe.message : ""} ${
+    typeof maybe.details === "string" ? maybe.details : ""
+  }`.toLowerCase();
+  return msg.includes("post_reactions") && msg.includes("does not exist");
 }
 
 type AuthorProfile = {
@@ -141,6 +151,48 @@ async function getAuthorProfileMap(userIds: string[]) {
   return map;
 }
 
+async function getPostLikeCounts(postIds: string[]) {
+  const map = new Map<string, number>();
+  if (!postIds.length) return map;
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("post_reactions")
+    .select("post_id")
+    .in("post_id", postIds);
+
+  if (error) {
+    if (isMissingPostReactionsTableError(error)) {
+      return map;
+    }
+    throw error;
+  }
+
+  (data ?? []).forEach((row) => {
+    const postId = (row as { post_id: string }).post_id;
+    map.set(postId, (map.get(postId) ?? 0) + 1);
+  });
+
+  return map;
+}
+
+async function getPostLikeCount(postId: string, strict = false) {
+  const supabase = getSupabaseAdmin();
+  const { count, error } = await supabase
+    .from("post_reactions")
+    .select("post_id", { count: "exact", head: true })
+    .eq("post_id", postId);
+
+  if (error) {
+    if (!strict && isMissingPostReactionsTableError(error)) {
+      return 0;
+    }
+    throw error;
+  }
+
+  return count ?? 0;
+}
+
 export async function listPosts(limit = 20) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -154,9 +206,11 @@ export async function listPosts(limit = 20) {
   const posts = (data ?? []) as Array<Omit<PostRecord, "author">>;
   const authorIds = Array.from(new Set(posts.map((post) => post.author_id)));
   const profileMap = await getAuthorProfileMap(authorIds);
+  const likeMap = await getPostLikeCounts(posts.map((post) => post.id));
 
   return posts.map((post) => ({
     ...post,
+    like_count: likeMap.get(post.id) ?? 0,
     author: [
       {
         display_name: profileMap.get(post.author_id)?.display_name ?? null,
@@ -186,9 +240,11 @@ export async function getPostById(id: string) {
   if (!data) return data;
 
   const authorProfile = (await getAuthorProfileMap([data.author_id])).get(data.author_id);
+  const likeCount = await getPostLikeCount(id);
 
   return {
     ...data,
+    like_count: likeCount,
     author: [
       {
         display_name: authorProfile?.display_name ?? null,
@@ -364,4 +420,48 @@ export async function createComment(input: {
 
   if (primary.error) throw primary.error;
   return (primary.data as { id: string }).id;
+}
+
+export async function togglePostLike(postId: string, userId: string) {
+  const supabase = getSupabaseAdmin();
+
+  const { data: post, error: postError } = await supabase
+    .from("posts")
+    .select("id")
+    .eq("id", postId)
+    .maybeSingle();
+
+  if (postError) throw postError;
+  if (!post) return null;
+
+  const existing = await supabase
+    .from("post_reactions")
+    .select("post_id, user_id")
+    .eq("post_id", postId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (existing.error) {
+    if (isMissingPostReactionsTableError(existing.error)) {
+      throw new Error("post_reactions table is missing. Run docs/sql/post-reactions.sql");
+    }
+    throw existing.error;
+  }
+
+  if (!existing.data) {
+    const add = await supabase
+      .from("post_reactions")
+      .insert({ post_id: postId, user_id: userId });
+    if (add.error) {
+      if (isMissingPostReactionsTableError(add.error)) {
+        throw new Error("post_reactions table is missing. Run docs/sql/post-reactions.sql");
+      }
+      if ((add.error as { code?: string }).code !== "23505") {
+        throw add.error;
+      }
+    }
+  }
+
+  const likeCount = await getPostLikeCount(postId, true);
+  return { liked: true, likeCount };
 }

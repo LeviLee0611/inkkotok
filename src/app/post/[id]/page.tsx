@@ -1,6 +1,7 @@
 import { getPostById, listComments } from "@/lib/posts";
 import CommentsSection from "./CommentsSection";
 import { PostManageActions } from "./ManageActions";
+import PostLikeButton from "./PostLikeButton";
 
 export const runtime = "edge";
 
@@ -65,7 +66,7 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
           작성자 · {post.author?.[0]?.display_name ?? post.author_id.slice(0, 6)}
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-zinc-500">
-          <span>공감 32</span>
+          <PostLikeButton postId={id} initialLikeCount={post.like_count ?? 0} />
           <span>댓글 {comments.length}</span>
           <span>방금 전</span>
         </div>
