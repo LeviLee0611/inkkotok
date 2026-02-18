@@ -21,6 +21,7 @@ export default function AppMenu() {
       created_at: string;
     }>
   >([]);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const unreadCount = useMemo(
@@ -56,6 +57,15 @@ export default function AppMenu() {
     });
     return () => {
       sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowMs(Date.now());
+    }, 60000);
+    return () => {
+      clearInterval(timer);
     };
   }, []);
 
@@ -169,6 +179,26 @@ export default function AppMenu() {
     if (type === "reply") return "내 댓글에 답글이 달렸어요";
     if (type === "reaction") return "내 글에 공감/투표가 늘었어요";
     return "내 글이 인기 글이 됐어요";
+  };
+
+  const iconForType = (type: "comment" | "reply" | "reaction" | "hot_post") => {
+    if (type === "comment") return "💬";
+    if (type === "reply") return "↪️";
+    if (type === "reaction") return "❤️";
+    return "🔥";
+  };
+
+  const relativeTime = (iso: string) => {
+    const diff = nowMs - new Date(iso).getTime();
+    if (Number.isNaN(diff) || diff < 0) return "방금 전";
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return "방금 전";
+    if (minutes < 60) return `${minutes}분 전`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}시간 전`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}일 전`;
+    return new Date(iso).toLocaleDateString("ko-KR");
   };
 
   const markOneRead = async (id: string) => {
@@ -300,17 +330,20 @@ export default function AppMenu() {
                         key={item.id}
                         href={href}
                         className={`block rounded-xl px-3 py-2 transition ${
-                          item.is_read ? "bg-white text-zinc-600" : "bg-rose-50 text-zinc-700"
+                          item.is_read
+                            ? "bg-white text-zinc-600"
+                            : "border border-rose-100 bg-rose-50 text-zinc-700"
                         } hover:bg-[var(--paper)]`}
                         onClick={() => {
                           setNotifOpen(false);
                           void markOneRead(item.id);
                         }}
                       >
-                        <p className="text-[11px] font-semibold">{labelForType(item.type)}</p>
-                        <p className="mt-0.5 text-[10px] text-zinc-400">
-                          {new Date(item.created_at).toLocaleString("ko-KR")}
+                        <p className="text-[11px] font-semibold">
+                          <span className="mr-1">{iconForType(item.type)}</span>
+                          {labelForType(item.type)}
                         </p>
+                        <p className="mt-0.5 text-[10px] text-zinc-400">{relativeTime(item.created_at)}</p>
                       </Link>
                     );
                   })
