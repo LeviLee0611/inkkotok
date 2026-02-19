@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getUserFromRequest } from "@/lib/auth";
+import { uploadPublicImageFile } from "@/lib/media";
 import { upsertProfile } from "@/lib/profile";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 
@@ -8,15 +9,6 @@ export const runtime = "edge";
 
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 const AVATAR_BUCKET = "avatars";
-
-function fileExt(name: string, type: string) {
-  const byName = name.includes(".") ? name.split(".").pop()?.toLowerCase() : "";
-  if (byName) return byName;
-  if (type === "image/png") return "png";
-  if (type === "image/jpeg") return "jpg";
-  if (type === "image/webp") return "webp";
-  return "bin";
-}
 
 export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request);
@@ -42,36 +34,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = getSupabaseAdmin();
-    const ext = fileExt(file.name, file.type);
-    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
-    const bytes = new Uint8Array(await file.arrayBuffer());
-
-    const bucketCheck = await supabase.storage.getBucket(AVATAR_BUCKET);
-    if (bucketCheck.error) {
-      const createBucket = await supabase.storage.createBucket(AVATAR_BUCKET, {
-        public: true,
-      });
-      if (createBucket.error && !createBucket.error.message?.toLowerCase().includes("already exists")) {
-        return NextResponse.json(
-          { error: createBucket.error.message ?? "아바타 저장소 생성에 실패했어요." },
-          { status: 500 }
-        );
-      }
-    }
-
-    const upload = await supabase.storage
-      .from(AVATAR_BUCKET)
-      .upload(path, bytes, { contentType: file.type, upsert: true });
-
-    if (upload.error) {
-      return NextResponse.json(
-        { error: upload.error.message ?? "이미지 업로드에 실패했어요." },
-        { status: 500 }
-      );
-    }
-
-    const publicUrl = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path).data.publicUrl;
+    const { publicUrl } = await uploadPublicImageFile({
+      bucket: AVATAR_BUCKET,
+      file,
+      ownerId: user.id,
+      filePrefix: "avatar",
+      maxBytes: MAX_AVATAR_SIZE,
+    });
 
     await upsertProfile({
       id: user.id,
