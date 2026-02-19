@@ -1,9 +1,9 @@
 export const EMOTION_CATEGORIES = [
-  { id: 1, slug: "conflict", label: "Conflict & 고민" },
-  { id: 2, slug: "venting", label: "Venting & Stories" },
-  { id: 3, slug: "advice", label: "Advice Request" },
-  { id: 4, slug: "poll", label: "Poll & Decision" },
-  { id: 5, slug: "love", label: "Love & Positive Stories" },
+  { id: 1, slug: "workout", label: "운동 · 건강" },
+  { id: 2, slug: "parenting", label: "육아 · 가족" },
+  { id: 3, slug: "finance", label: "경제 · 재테크" },
+  { id: 4, slug: "vote", label: "투표 · 의견모음" },
+  { id: 5, slug: "story", label: "일상 · 개인이야기" },
 ] as const;
 
 export const MOODS = [
