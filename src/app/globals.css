@@ -43,9 +43,10 @@ html.theme-dark body {
 
 body {
   background:
-    radial-gradient(1200px 600px at 10% -10%, var(--mint), transparent 75%),
-    radial-gradient(1000px 520px at 90% 0%, var(--sky), transparent 70%),
-    radial-gradient(900px 480px at 20% 100%, var(--peach), transparent 65%),
+    radial-gradient(1000px 520px at 12% -12%, color-mix(in srgb, var(--mint) 78%, white 22%), transparent 70%),
+    radial-gradient(900px 460px at 92% -6%, color-mix(in srgb, var(--sky) 74%, white 26%), transparent 68%),
+    radial-gradient(720px 360px at 82% 72%, color-mix(in srgb, var(--accent) 18%, white 82%), transparent 74%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, rgba(248, 244, 238, 0.42) 100%),
     var(--paper);
   color: var(--ink);
   font-family: var(--font-body), sans-serif;
@@ -54,6 +55,10 @@ body {
 
 .font-display {
   font-family: var(--font-display), serif;
+}
+
+.font-hero {
+  font-family: var(--font-hero), var(--font-display), serif;
 }
 
 .font-body {

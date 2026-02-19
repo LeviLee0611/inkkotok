@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Noto_Sans_KR, Noto_Serif_KR } from "next/font/google";
+import { Hahmlet, Noto_Sans_KR, Noto_Serif_KR } from "next/font/google";
 import "./globals.css";
 import AppMenu from "@/app/components/AppMenu";
 import BrandMark from "@/app/components/BrandMark";
@@ -15,6 +15,12 @@ const notoSerif = Noto_Serif_KR({
   variable: "--font-display",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
+});
+
+const hahmlet = Hahmlet({
+  variable: "--font-hero",
+  subsets: ["latin"],
+  weight: ["500", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -43,7 +49,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body
-        className={`${notoSans.variable} ${notoSerif.variable} antialiased font-body`}
+        className={`${notoSans.variable} ${notoSerif.variable} ${hahmlet.variable} antialiased font-body`}
       >
         <ThemeInit />
         <BrandMark />

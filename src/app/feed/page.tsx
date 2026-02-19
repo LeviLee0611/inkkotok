@@ -1,5 +1,5 @@
 import { listPosts } from "@/lib/posts";
-import { EMOTION_CATEGORIES, MOODS } from "@/lib/emotions";
+import { EMOTION_CATEGORIES } from "@/lib/emotions";
 import Link from "next/link";
 
 export const runtime = "edge";
@@ -30,12 +30,12 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
     <div className="min-h-screen px-6 pb-20 pt-10 md:px-12">
       <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-[var(--shadow)]">
         <p className="text-sm font-semibold text-[var(--cocoa)]">
-          커뮤니티 피드
+          정보 · 커뮤니티 피드
         </p>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="font-display text-3xl font-semibold text-[var(--ink)]">
-              지금 사람들이 나누는 이야기
+              최신 정보와 이야기를 한 번에
             </h1>
             <p className="mt-2 text-sm text-zinc-600">
               로그인 없이 읽을 수 있어요. 로그인하면 글과 댓글을 바로 남길 수
@@ -50,7 +50,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
               홈으로
             </Link>
             <a
-              className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white"
+              className="rounded-full border border-[var(--border-soft)] bg-gradient-to-b from-white to-[var(--paper)] px-4 py-2 text-sm font-semibold text-[var(--cocoa)] shadow-[0_12px_24px_-18px_rgba(54,41,31,0.75)] transition hover:-translate-y-0.5 hover:from-white hover:to-white"
               href="/write"
             >
               글쓰기
@@ -122,11 +122,6 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
                       "카테고리"}
                   </span>
                 ) : null}
-                {post.mood ? (
-                  <span className="rounded-full border border-rose-100 bg-rose-50 px-2 py-0.5 text-rose-700">
-                    {MOODS.find((item) => item.value === post.mood)?.label ?? post.mood}
-                  </span>
-                ) : null}
               </div>
               <a href={`/post/${post.id}`}>
                 <h2 className="mt-3 text-xl font-semibold text-[var(--ink)]">
@@ -165,7 +160,7 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
               필터/태그
             </p>
             <div className="mt-3 grid gap-2 text-sm text-zinc-600">
-              {["Money Conflicts", "Parenting-related conflicts", "In-law issues"].map((label) => (
+              {["운동 루틴", "육아 기록", "경제 공부", "개인 경험담"].map((label) => (
                 <button
                   key={label}
                   className="rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-3 py-2 text-left text-xs font-semibold text-[var(--cocoa)]"

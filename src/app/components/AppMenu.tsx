@@ -224,27 +224,21 @@ export default function AppMenu() {
   return (
     <div ref={containerRef} className="fixed right-6 top-6 z-50 flex items-center gap-2">
       <Link
-        className="rounded-full border border-[var(--border-soft)] bg-white/90 px-4 py-2 text-xs font-semibold text-[var(--cocoa)] shadow-sm"
+        className="rounded-full border border-[var(--border-soft)] bg-white/90 px-4 py-2 text-xs font-semibold text-[var(--cocoa)] shadow-sm transition hover:-translate-y-0.5 hover:bg-white"
         href="/"
       >
         홈
       </Link>
       <Link
-        className="rounded-full border border-[var(--border-soft)] bg-white/90 px-4 py-2 text-xs font-semibold text-[var(--cocoa)] shadow-sm"
-        href="/feed"
+        className="rounded-full border border-[var(--border-soft)] bg-gradient-to-b from-white to-[var(--paper)] px-4 py-2 text-xs font-semibold text-[var(--cocoa)] shadow-[0_12px_24px_-18px_rgba(54,41,31,0.75)] transition hover:-translate-y-0.5 hover:from-white hover:to-white"
+        href="/write"
       >
-        피드
-      </Link>
-      <Link
-        className="rounded-full border border-[var(--border-soft)] bg-white/90 px-4 py-2 text-xs font-semibold text-[var(--cocoa)] shadow-sm"
-        href="/settings"
-      >
-        설정
+        글쓰기
       </Link>
       {email ? (
         <>
           <button
-            className="relative inline-flex h-10 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white/90 px-3 text-xs font-semibold text-[var(--cocoa)] shadow-sm"
+            className="relative inline-flex h-10 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white/90 px-3 text-xs font-semibold text-[var(--cocoa)] shadow-sm transition hover:-translate-y-0.5 hover:bg-white"
             type="button"
             onClick={() => {
               setNotifOpen((prev) => !prev);
@@ -260,7 +254,7 @@ export default function AppMenu() {
             ) : null}
           </button>
           <button
-            className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-[var(--border-soft)] bg-white/90 text-xs font-semibold text-[var(--cocoa)] shadow-sm"
+            className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-[var(--border-soft)] bg-white/90 text-xs font-semibold text-[var(--cocoa)] shadow-sm transition hover:-translate-y-0.5 hover:bg-white"
             type="button"
             onClick={() => {
               setOpen((prev) => !prev);
@@ -278,6 +272,14 @@ export default function AppMenu() {
               <span>{profileLabel.slice(0, 1).toUpperCase()}</span>
             )}
           </button>
+          <Link
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/75 text-[24px] leading-none text-[var(--cocoa)] ring-1 ring-[var(--border-soft)]/70 transition hover:-translate-y-0.5 hover:bg-white"
+            href="/settings"
+            aria-label="설정"
+            title="설정"
+          >
+            <span className="inline-flex items-center justify-center leading-none">⚙️</span>
+          </Link>
           {open ? (
             <div className="absolute right-14 top-11 w-48 rounded-2xl border border-[var(--border-soft)] bg-white/95 p-2 text-xs shadow-lg">
               <p className="truncate px-3 py-2 text-[11px] text-zinc-500">{email}</p>
@@ -355,19 +357,23 @@ export default function AppMenu() {
           ) : null}
         </>
       ) : (
-        <Link
-          className="rounded-full border border-[var(--border-soft)] bg-white/90 px-4 py-2 text-xs font-semibold text-[var(--cocoa)] shadow-sm"
-          href="/auth"
-        >
-          로그인
-        </Link>
+        <>
+          <Link
+            className="rounded-full border border-[var(--border-soft)] bg-white/90 px-4 py-2 text-xs font-semibold text-[var(--cocoa)] shadow-sm transition hover:-translate-y-0.5 hover:bg-white"
+            href="/auth"
+          >
+            로그인
+          </Link>
+          <Link
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/75 text-[24px] leading-none text-[var(--cocoa)] ring-1 ring-[var(--border-soft)]/70 transition hover:-translate-y-0.5 hover:bg-white"
+            href="/settings"
+            aria-label="설정"
+            title="설정"
+          >
+            <span className="inline-flex items-center justify-center leading-none">⚙️</span>
+          </Link>
+        </>
       )}
-      <Link
-        className="rounded-full bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white shadow-sm"
-        href="/write"
-      >
-        글쓰기
-      </Link>
     </div>
   );
 }
