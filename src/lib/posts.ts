@@ -80,6 +80,22 @@ function isMissingPostReactionsTypeError(error: unknown) {
   return msg.includes("reaction_type") && msg.includes("does not exist");
 }
 
+function isMissingPostsSchemaColumnError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const maybe = error as { message?: unknown; details?: unknown };
+  const msg = `${typeof maybe.message === "string" ? maybe.message : ""} ${
+    typeof maybe.details === "string" ? maybe.details : ""
+  }`.toLowerCase();
+  return (
+    msg.includes("category_id") ||
+    msg.includes("mood") ||
+    msg.includes("comments_count") ||
+    msg.includes("reactions_count") ||
+    msg.includes("votes_count") ||
+    msg.includes("hot_score")
+  ) && msg.includes("does not exist");
+}
+
 function isMissingPollsTableError(error: unknown) {
   if (!error || typeof error !== "object") return false;
   const maybe = error as { message?: unknown; details?: unknown };
@@ -273,7 +289,21 @@ export async function listPosts(
     query = query.order("created_at", { ascending: false });
   }
 
-  const { data, error } = await query;
+  let { data, error } = await query;
+  if (error && isMissingPostsSchemaColumnError(error)) {
+    let fallbackQuery = supabase
+      .from("posts")
+      .select("id, author_id, title, lounge, body, created_at")
+      .limit(limit);
+    if (options?.sort === "latest") {
+      fallbackQuery = fallbackQuery.order("created_at", { ascending: false });
+    } else {
+      fallbackQuery = fallbackQuery.order("created_at", { ascending: false });
+    }
+    const fallback = await fallbackQuery;
+    data = fallback.data as typeof data;
+    error = fallback.error;
+  }
 
   if (error) throw error;
 
@@ -304,7 +334,13 @@ export async function getPostById(id: string) {
     .eq("id", id)
     .maybeSingle();
 
-  if (error) {
+  if (error && isMissingPostsSchemaColumnError(error)) {
+    ({ data, error } = await supabase
+      .from("posts")
+      .select("id, title, lounge, body, author_id, created_at")
+      .eq("id", id)
+      .maybeSingle());
+  } else if (error) {
     ({ data, error } = await supabase
       .from("posts")
       .select(
@@ -429,6 +465,20 @@ export async function createPost(input: {
     .select("id")
     .single();
 
+  if (error && isMissingPostsSchemaColumnError(error)) {
+    const fallback = await supabase
+      .from("posts")
+      .insert({
+        author_id: input.authorId,
+        title: input.title,
+        body: input.body,
+        lounge: input.lounge,
+      })
+      .select("id")
+      .single();
+    if (fallback.error) throw fallback.error;
+    return fallback.data.id as string;
+  }
   if (error) throw error;
   return data.id as string;
 }
