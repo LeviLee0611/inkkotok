@@ -1,6 +1,7 @@
 import { listPosts } from "@/lib/posts";
 import { EMOTION_CATEGORIES } from "@/lib/emotions";
 import Link from "next/link";
+import FeedFilters from "@/app/feed/FeedFilters";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
@@ -61,53 +62,8 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       <section className="mx-auto mt-8 grid w-full max-w-6xl gap-4 md:grid-cols-[1.2fr_0.8fr]">
         <div className="grid gap-4">
           <div className="rounded-3xl border border-[var(--border-soft)] bg-white/90 p-4 shadow-sm">
-            <div className="flex flex-wrap gap-2">
-              <Link
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                  sort === "hot"
-                    ? "border-rose-200 bg-rose-50 text-rose-700"
-                    : "border-[var(--border-soft)] bg-white text-zinc-600"
-                }`}
-                href={`/feed?sort=hot${parsedCategoryId ? `&categoryId=${parsedCategoryId}` : ""}`}
-              >
-                🔥 Hot
-              </Link>
-              <Link
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                  sort === "latest"
-                    ? "border-amber-200 bg-amber-50 text-amber-800"
-                    : "border-[var(--border-soft)] bg-white text-zinc-600"
-                }`}
-                href={`/feed?sort=latest${parsedCategoryId ? `&categoryId=${parsedCategoryId}` : ""}`}
-              >
-                최신순
-              </Link>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Link
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                  !parsedCategoryId
-                    ? "border-[var(--ink)] bg-[var(--ink)] text-white"
-                    : "border-[var(--border-soft)] bg-white text-zinc-600"
-                }`}
-                href={`/feed?sort=${sort}`}
-              >
-                전체
-              </Link>
-              {EMOTION_CATEGORIES.map((category) => (
-                <Link
-                  key={category.id}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                    parsedCategoryId === category.id
-                      ? "border-[var(--ink)] bg-[var(--ink)] text-white"
-                      : "border-[var(--border-soft)] bg-white text-zinc-600"
-                  }`}
-                  href={`/feed?sort=${sort}&categoryId=${category.id}`}
-                >
-                  {category.label}
-                </Link>
-              ))}
-            </div>
+            <p className="mb-3 text-xs font-semibold text-[var(--cocoa)]">필터</p>
+            <FeedFilters sort={sort} categoryId={parsedCategoryId} />
           </div>
           {feed.map((post) => (
             <article
