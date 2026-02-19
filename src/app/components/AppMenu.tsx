@@ -14,11 +14,13 @@ export default function AppMenu() {
   const [notifications, setNotifications] = useState<
     Array<{
       id: string;
-      type: "comment" | "reply" | "reaction" | "hot_post";
+      type: "comment" | "reply" | "reaction" | "hot_post" | "moderation_note";
       post_id: string | null;
       comment_id: string | null;
       is_read: boolean;
       created_at: string;
+      note_message?: string | null;
+      source?: "notifications" | "moderation_notes";
     }>
   >([]);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -82,11 +84,13 @@ export default function AppMenu() {
         const json = (await res.json()) as {
           notifications?: Array<{
             id: string;
-            type: "comment" | "reply" | "reaction" | "hot_post";
+            type: "comment" | "reply" | "reaction" | "hot_post" | "moderation_note";
             post_id: string | null;
             comment_id: string | null;
             is_read: boolean;
             created_at: string;
+            note_message?: string | null;
+            source?: "notifications" | "moderation_notes";
           }>;
         };
         if (!cancelled) {
@@ -174,17 +178,23 @@ export default function AppMenu() {
     window.location.assign("/");
   };
 
-  const labelForType = (type: "comment" | "reply" | "reaction" | "hot_post") => {
+  const labelForType = (
+    type: "comment" | "reply" | "reaction" | "hot_post" | "moderation_note"
+  ) => {
     if (type === "comment") return "내 글에 댓글이 달렸어요";
     if (type === "reply") return "내 댓글에 답글이 달렸어요";
     if (type === "reaction") return "내 글에 공감/투표가 늘었어요";
+    if (type === "moderation_note") return "운영 안내 메모가 도착했어요";
     return "내 글이 인기 글이 됐어요";
   };
 
-  const iconForType = (type: "comment" | "reply" | "reaction" | "hot_post") => {
+  const iconForType = (
+    type: "comment" | "reply" | "reaction" | "hot_post" | "moderation_note"
+  ) => {
     if (type === "comment") return "💬";
     if (type === "reply") return "↪️";
     if (type === "reaction") return "❤️";
+    if (type === "moderation_note") return "📝";
     return "🔥";
   };
 
@@ -201,7 +211,7 @@ export default function AppMenu() {
     return new Date(iso).toLocaleDateString("ko-KR");
   };
 
-  const markOneRead = async (id: string) => {
+  const markOneRead = async (id: string, source?: "notifications" | "moderation_notes") => {
     setNotifications((prev) =>
       prev.map((item) => (item.id === id ? { ...item, is_read: true } : item))
     );
@@ -209,7 +219,7 @@ export default function AppMenu() {
       await authFetch("/api/notifications", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, source }),
       });
     } catch {}
   };
@@ -338,13 +348,18 @@ export default function AppMenu() {
                         } hover:bg-[var(--paper)]`}
                         onClick={() => {
                           setNotifOpen(false);
-                          void markOneRead(item.id);
+                          void markOneRead(item.id, item.source);
                         }}
                       >
                         <p className="text-[11px] font-semibold">
                           <span className="mr-1">{iconForType(item.type)}</span>
                           {labelForType(item.type)}
                         </p>
+                        {item.type === "moderation_note" && item.note_message ? (
+                          <p className="mt-1 text-[10px] leading-4 text-zinc-500">
+                            {item.note_message}
+                          </p>
+                        ) : null}
                         <p className="mt-0.5 text-[10px] text-zinc-400">{relativeTime(item.created_at)}</p>
                       </Link>
                     );

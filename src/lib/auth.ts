@@ -12,6 +12,12 @@ export type AuthUser = {
   picture: string | null;
 };
 
+export type RoleCode = "user" | "manager" | "admin";
+
+let roleClient:
+  | ReturnType<typeof createClient>
+  | null = null;
+
 export function isAdminEmail(email: string | null | undefined) {
   if (!email) return false;
   const fromList = (process.env.ADMIN_EMAILS ?? "")
@@ -23,8 +29,72 @@ export function isAdminEmail(email: string | null | undefined) {
   return fromList.includes(normalized) || (single !== "" && single === normalized);
 }
 
+function getSupabaseAdminConfig() {
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceRoleKey) return null;
+  return { url, serviceRoleKey };
+}
+
+function getRoleClient() {
+  if (roleClient) return roleClient;
+  const config = getSupabaseAdminConfig();
+  if (!config) return null;
+  roleClient = createClient(config.url, config.serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  return roleClient;
+}
+
+async function getDbRoleCode(userId: string): Promise<RoleCode | null> {
+  const supabase = getRoleClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from("user_roles")
+    .select("roles(code, priority)")
+    .eq("user_id", userId)
+    .is("revoked_at", null);
+
+  if (error || !data?.length) {
+    return null;
+  }
+
+  let best: { code: RoleCode; priority: number } | null = null;
+
+  for (const row of data as Array<{
+    roles?: { code?: string; priority?: number } | Array<{ code?: string; priority?: number }> | null;
+  }>) {
+    const roles = Array.isArray(row.roles) ? row.roles : row.roles ? [row.roles] : [];
+    for (const role of roles) {
+      if (!role || typeof role.code !== "string") continue;
+      const code = role.code as RoleCode;
+      if (!["user", "manager", "admin"].includes(code)) continue;
+      const priority = typeof role.priority === "number" ? role.priority : 0;
+      if (!best || priority > best.priority) {
+        best = { code, priority };
+      }
+    }
+  }
+
+  return best?.code ?? null;
+}
+
+export async function getUserRole(user: AuthUser): Promise<RoleCode> {
+  const dbRole = await getDbRoleCode(user.id).catch(() => null);
+  if (dbRole) return dbRole;
+  if (isAdminEmail(user.email)) return "admin";
+  return "user";
+}
+
 export async function isAdminUser(user: AuthUser) {
-  return isAdminEmail(user.email);
+  const role = await getUserRole(user);
+  return role === "admin";
+}
+
+export async function isManagerUser(user: AuthUser) {
+  const role = await getUserRole(user);
+  return role === "manager" || role === "admin";
 }
 
 function getBearerToken(headers: Headers | Record<string, string>) {

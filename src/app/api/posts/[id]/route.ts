@@ -1,6 +1,7 @@
 import { getPostById } from "@/lib/posts";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getUserFromRequest, isAdminUser } from "@/lib/auth";
+import { createModerationNote } from "@/lib/notifications";
 import { NextRequest } from "next/server";
 
 export const runtime = "edge";
@@ -117,7 +118,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   const supabase = getSupabaseAdmin();
   const { data: existing, error: existingError } = await supabase
     .from("posts")
-    .select("id, author_id")
+    .select("id, author_id, title")
     .eq("id", id)
     .maybeSingle();
 
@@ -133,6 +134,12 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const deleteBody = (await request.json().catch(() => null)) as
+    | { moderationNote?: string }
+    | null;
+  const trimmedNote = deleteBody?.moderationNote?.trim() ?? "";
+  const isModerationDelete = isAdmin && existing.author_id !== user.id;
+
   const { error: commentsDeleteError } = await supabase
     .from("comments")
     .delete()
@@ -144,6 +151,19 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   const { error: postDeleteError } = await supabase.from("posts").delete().eq("id", id);
   if (postDeleteError) {
     return Response.json({ error: "Post delete failed." }, { status: 500 });
+  }
+
+  if (isModerationDelete) {
+    const fallbackMessage = "커뮤니티 운영 정책에 따라 게시글이 삭제되었습니다.";
+    const note = trimmedNote || `${fallbackMessage} (${existing.title ?? "게시글"})`;
+    await createModerationNote({
+      userId: existing.author_id,
+      actorUserId: user.id,
+      postId: id,
+      message: note,
+    }).catch((error) => {
+      console.error("createModerationNote failed", error);
+    });
   }
 
   return Response.json({ ok: true });

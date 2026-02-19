@@ -2,6 +2,7 @@ import { listPosts, createPollForPost, createPost } from "@/lib/posts";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { getUserIdFromRequest } from "@/lib/auth";
 import { readApiErrorMessage } from "@/lib/api-error";
+import { sendAdminNewPostEmail } from "@/lib/admin-alert";
 import { NextRequest } from "next/server";
 
 export const runtime = "edge";
@@ -87,6 +88,14 @@ export async function POST(request: NextRequest) {
         throw pollError;
       }
     }
+
+    await sendAdminNewPostEmail({
+      postId: id,
+      title,
+      lounge,
+      body: content,
+      authorId: userId,
+    });
 
     return Response.json({ id }, { status: 201 });
   } catch (error) {

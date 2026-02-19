@@ -62,10 +62,18 @@ export function PostManageActions({
     const ok = window.confirm("이 게시글과 댓글을 모두 삭제할까요?");
     if (!ok) return;
 
+    const moderationNote = window.prompt(
+      "작성자에게 남길 운영 메모가 있으면 입력하세요. (선택)"
+    );
+
     setWorking(true);
     try {
       const res = await authFetch(`/api/posts/${postId}`, {
         method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          moderationNote: moderationNote?.trim() || undefined,
+        }),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => null)) as { error?: string } | null;

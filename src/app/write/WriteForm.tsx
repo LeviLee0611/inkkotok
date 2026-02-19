@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { authFetch } from "@/lib/auth-fetch";
-import { EMOTION_CATEGORIES, MOODS, type MoodValue } from "@/lib/emotions";
+import { EMOTION_CATEGORIES } from "@/lib/emotions";
 
 const LOUNGES = [
   "신혼 1-3년",
@@ -20,7 +20,6 @@ type WriteFormProps = {
   initialLounge?: string;
   initialContent?: string;
   initialCategoryId?: number;
-  initialMood?: MoodValue;
 };
 
 export default function WriteForm({
@@ -30,13 +29,11 @@ export default function WriteForm({
   initialLounge = LOUNGES[0],
   initialContent = "",
   initialCategoryId = 2,
-  initialMood = "mixed",
 }: WriteFormProps) {
   const [title, setTitle] = useState(initialTitle);
   const [lounge, setLounge] = useState(initialLounge);
   const [content, setContent] = useState(initialContent);
   const [categoryId, setCategoryId] = useState(initialCategoryId);
-  const [mood, setMood] = useState<MoodValue>(initialMood);
   const [pollOption1, setPollOption1] = useState("");
   const [pollOption2, setPollOption2] = useState("");
   const [pollOption3, setPollOption3] = useState("");
@@ -69,7 +66,6 @@ export default function WriteForm({
           title: title.trim(),
           lounge,
           categoryId,
-          mood,
           content: content.trim(),
           pollOptions:
             categoryId === 4
@@ -122,7 +118,7 @@ export default function WriteForm({
           />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
-          감정 카테고리
+          글 카테고리
           <div className="grid gap-2 sm:grid-cols-2">
             {EMOTION_CATEGORIES.map((item) => {
               const active = categoryId === item.id;
@@ -136,28 +132,6 @@ export default function WriteForm({
                       : "border-[var(--border-soft)] bg-[var(--paper)] text-[var(--cocoa)]"
                   }`}
                   onClick={() => setCategoryId(item.id)}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-        </label>
-        <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
-          지금 감정
-          <div className="flex flex-wrap gap-2">
-            {MOODS.map((item) => {
-              const active = mood === item.value;
-              return (
-                <button
-                  key={item.value}
-                  type="button"
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                    active
-                      ? "border-rose-200 bg-rose-50 text-rose-700"
-                      : "border-[var(--border-soft)] bg-white text-zinc-600"
-                  }`}
-                  onClick={() => setMood(item.value)}
                 >
                   {item.label}
                 </button>
@@ -229,14 +203,11 @@ export default function WriteForm({
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
                 <span className="ml-2 text-[11px] font-medium text-zinc-500">Private Note</span>
               </div>
-              <span className="rounded-full border border-amber-100 bg-white/90 px-2.5 py-1 text-[11px] font-medium text-zinc-500">
-                {content.trim().length}자
-              </span>
             </div>
             <div className="p-3 sm:p-4">
               <textarea
                 className="min-h-[300px] w-full rounded-2xl border border-amber-100/90 bg-white/92 px-4 py-4 text-[15px] leading-7 text-zinc-700 outline-none transition placeholder:text-zinc-400 focus:border-amber-300 focus:bg-white focus:shadow-[0_0_0_4px_rgba(251,191,36,0.16)] sm:min-h-[340px]"
-                placeholder="오늘 있었던 일, 내 감정, 상대와의 상황을 차분히 적어보세요."
+                placeholder="정보 정리, 경험 공유, 질문 등 원하는 내용을 자유롭게 적어보세요."
                 value={content}
                 onChange={(event) => setContent(event.target.value)}
               />

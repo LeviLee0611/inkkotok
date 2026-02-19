@@ -31,3 +31,5 @@
 
 ## SQL
 - Run `docs/sql/firebase-auth-schema.sql` in Supabase SQL editor.
+- Run `docs/sql/admin-role-schema.sql` to enable DB-based admin/manager roles.
+- Run `docs/sql/moderation-notes.sql` to enable admin-to-user moderation memos.

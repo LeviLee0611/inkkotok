@@ -11,6 +11,15 @@ function isMissingNotificationsTableError(error: unknown) {
   return msg.includes("notifications") && msg.includes("does not exist");
 }
 
+function isMissingModerationNotesTableError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const maybe = error as { message?: unknown; details?: unknown };
+  const msg = `${typeof maybe.message === "string" ? maybe.message : ""} ${
+    typeof maybe.details === "string" ? maybe.details : ""
+  }`.toLowerCase();
+  return msg.includes("moderation_notes") && msg.includes("does not exist");
+}
+
 export async function createNotification(input: {
   userId: string;
   actorUserId?: string | null;
@@ -31,6 +40,30 @@ export async function createNotification(input: {
   });
 
   if (error && !isMissingNotificationsTableError(error)) {
+    throw error;
+  }
+}
+
+export async function createModerationNote(input: {
+  userId: string;
+  actorUserId: string;
+  postId?: string | null;
+  message: string;
+}) {
+  if (!input.userId || !input.actorUserId) return;
+  if (input.userId === input.actorUserId) return;
+  if (!input.message.trim()) return;
+
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase.from("moderation_notes").insert({
+    user_id: input.userId,
+    actor_user_id: input.actorUserId,
+    post_id: input.postId ?? null,
+    message: input.message.trim(),
+    is_read: false,
+  });
+
+  if (error && !isMissingModerationNotesTableError(error)) {
     throw error;
   }
 }
