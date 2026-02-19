@@ -9,6 +9,7 @@ export type PostRecord = {
   body: string;
   lounge: string;
   category_id?: number;
+  info_weight?: number;
   mood?: "sad" | "angry" | "anxious" | "mixed" | "hopeful" | "happy";
   comments_count?: number;
   reactions_count?: number;
@@ -88,6 +89,7 @@ function isMissingPostsSchemaColumnError(error: unknown) {
   }`.toLowerCase();
   return (
     msg.includes("category_id") ||
+    msg.includes("info_weight") ||
     msg.includes("mood") ||
     msg.includes("comments_count") ||
     msg.includes("reactions_count") ||
@@ -269,15 +271,19 @@ async function getPostLikeCount(postId: string, strict = false) {
 
 export async function listPosts(
   limit = 20,
-  options?: { categoryId?: number; sort?: "latest" | "hot" }
+  options?: { categoryId?: number; sort?: "latest" | "hot"; offset?: number }
 ) {
   const supabase = getSupabaseAdmin();
   let query = supabase
     .from("posts")
     .select(
-      "id, author_id, title, lounge, body, category_id, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
+      "id, author_id, title, lounge, body, category_id, info_weight, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
     )
     .limit(limit);
+
+  if (typeof options?.offset === "number" && options.offset > 0) {
+    query = query.range(options.offset, options.offset + limit - 1);
+  }
 
   if (typeof options?.categoryId === "number") {
     query = query.eq("category_id", options.categoryId);
@@ -329,7 +335,7 @@ export async function getPostById(id: string) {
   let { data, error } = await supabase
     .from("posts")
     .select(
-      "id, title, lounge, body, author_id, category_id, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
+      "id, title, lounge, body, author_id, category_id, info_weight, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
     )
     .eq("id", id)
     .maybeSingle();
@@ -344,7 +350,7 @@ export async function getPostById(id: string) {
     ({ data, error } = await supabase
       .from("posts")
       .select(
-        "id, title, lounge, body, author_id, category_id, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
+        "id, title, lounge, body, author_id, category_id, info_weight, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
       )
       .eq("id", id)
       .maybeSingle());
@@ -444,6 +450,7 @@ export async function createPost(input: {
   body: string;
   lounge: string;
   categoryId?: number;
+  infoWeight?: number;
   mood?: "sad" | "angry" | "anxious" | "mixed" | "hopeful" | "happy";
 }) {
   const supabase = getSupabaseAdmin();
@@ -455,6 +462,9 @@ export async function createPost(input: {
   };
   if (typeof input.categoryId === "number") {
     payload.category_id = input.categoryId;
+  }
+  if (typeof input.infoWeight === "number") {
+    payload.info_weight = Math.min(100, Math.max(0, Math.round(input.infoWeight)));
   }
   if (input.mood) {
     payload.mood = input.mood;

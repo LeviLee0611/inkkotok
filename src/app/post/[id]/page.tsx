@@ -1,6 +1,6 @@
 import { getPostById, getPollByPostId, listComments } from "@/lib/posts";
 import { getUserFromRequest } from "@/lib/auth";
-import { EMOTION_CATEGORIES, MOODS } from "@/lib/emotions";
+import { EMOTION_CATEGORIES } from "@/lib/emotions";
 import { headers } from "next/headers";
 import CommentsSection from "./CommentsSection";
 import { PostManageActions } from "./ManageActions";
@@ -12,6 +12,13 @@ export const runtime = "edge";
 type PostDetailProps = {
   params: Promise<{ id: string }>;
 };
+
+function infoWeightLabel(weight?: number) {
+  const value = typeof weight === "number" ? Math.min(100, Math.max(0, weight)) : 50;
+  if (value >= 70) return `정보기반 ${value}%`;
+  if (value <= 30) return `자유주제 ${100 - value}%`;
+  return `균형형 ${value}%`;
+}
 
 export default async function PostDetailPage({ params }: PostDetailProps) {
   const { id } = await params;
@@ -52,19 +59,35 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
   }
   return (
     <div className="min-h-screen px-6 pb-20 pt-10 md:px-12">
+      <div className="mx-auto mb-3 w-full max-w-5xl md:-mb-10">
+        <a
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white/90 text-[var(--cocoa)] shadow-sm transition hover:-translate-y-0.5 hover:bg-white md:-translate-x-14"
+          href="/feed"
+          aria-label="뒤로가기"
+          title="뒤로가기"
+        >
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path
+              d="M12.5 4.5L7 10L12.5 15.5"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </a>
+      </div>
       <header className="mx-auto flex w-full max-w-5xl flex-col gap-4 rounded-[28px] border border-[var(--border-soft)] bg-gradient-to-b from-white to-[var(--paper)] p-6 shadow-[var(--shadow)]">
         <div className="flex items-center gap-2">
           <p className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-semibold text-[var(--cocoa)]">
             {post.lounge}
           </p>
+          <span className="inline-flex rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 py-1 text-xs font-semibold text-[var(--accent)]">
+            {infoWeightLabel(post.info_weight)}
+          </span>
           {typeof post.category_id === "number" ? (
             <span className="inline-flex rounded-full border border-[var(--border-soft)] bg-white px-3 py-1 text-xs text-zinc-600">
               {EMOTION_CATEGORIES.find((item) => item.id === post.category_id)?.label ?? "카테고리"}
-            </span>
-          ) : null}
-          {post.mood ? (
-            <span className="inline-flex rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-xs text-rose-700">
-              {MOODS.find((item) => item.value === post.mood)?.label ?? post.mood}
             </span>
           ) : null}
           <span className="text-[11px] text-zinc-500">읽는 시간 약 2분</span>
@@ -137,7 +160,7 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
           className="rounded-full bg-[var(--ink)] px-4 py-2 text-sm font-semibold text-white"
           href="/write"
         >
-          비슷한 고민 글쓰기
+          관련 글 작성하기
         </a>
       </footer>
     </div>

@@ -41,7 +41,7 @@ export default async function Home({ searchParams }: HomePageProps) {
           <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[var(--sun)]/40 blur-2xl" />
           <div className="pointer-events-none absolute -bottom-16 -left-10 h-36 w-36 rounded-full bg-[var(--accent)]/15 blur-2xl" />
           <div className="pointer-events-none absolute left-7 top-7 h-1.5 w-16 rounded-full bg-[var(--accent)]/80" />
-          <p className="font-hero relative text-[clamp(1.95rem,5vw,3.8rem)] font-extrabold leading-[1.08] tracking-[-0.02em] text-[var(--ink)]">
+          <p className="font-hero relative text-[clamp(1.95rem,5vw,3.8rem)] font-semibold leading-[1.08] tracking-[-0.02em] text-[var(--ink)]">
             잉꼬톡에 오신 걸 환영해요
           </p>
           <p className="relative mb-5 mt-4 max-w-3xl text-base leading-7 text-zinc-600 md:text-lg">

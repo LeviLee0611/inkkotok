@@ -3,15 +3,31 @@
 import { useState } from "react";
 import { authFetch } from "@/lib/auth-fetch";
 import { EMOTION_CATEGORIES } from "@/lib/emotions";
+import FancySelect from "@/app/components/FancySelect";
 
 const LOUNGES = [
-  "신혼 1-3년",
-  "30-40대 부부",
-  "50+ 동행",
+  "신혼부부",
+  "잉꼬부부",
   "관계 회복",
   "육아 루틴",
   "재정/자산",
 ];
+
+const LOUNGE_EMOJI: Record<string, string> = {
+  신혼부부: "💍",
+  잉꼬부부: "🐦",
+  "관계 회복": "🤝",
+  "육아 루틴": "🍼",
+  "재정/자산": "💰",
+};
+
+const CATEGORY_META: Record<number, { emoji: string; hint: string }> = {
+  1: { emoji: "💪", hint: "루틴·건강관리" },
+  2: { emoji: "👨‍👩‍👧", hint: "육아·가족 이야기" },
+  3: { emoji: "📈", hint: "경제·생활 정보" },
+  4: { emoji: "🗳️", hint: "의견·투표" },
+  5: { emoji: "📝", hint: "일상·경험 공유" },
+};
 
 type WriteFormProps = {
   mode?: "create" | "edit";
@@ -20,6 +36,7 @@ type WriteFormProps = {
   initialLounge?: string;
   initialContent?: string;
   initialCategoryId?: number;
+  initialInfoWeight?: number;
 };
 
 export default function WriteForm({
@@ -29,11 +46,13 @@ export default function WriteForm({
   initialLounge = LOUNGES[0],
   initialContent = "",
   initialCategoryId = 2,
+  initialInfoWeight = 50,
 }: WriteFormProps) {
   const [title, setTitle] = useState(initialTitle);
   const [lounge, setLounge] = useState(initialLounge);
   const [content, setContent] = useState(initialContent);
   const [categoryId, setCategoryId] = useState(initialCategoryId);
+  const [infoWeight, setInfoWeight] = useState(initialInfoWeight);
   const [pollOption1, setPollOption1] = useState("");
   const [pollOption2, setPollOption2] = useState("");
   const [pollOption3, setPollOption3] = useState("");
@@ -66,6 +85,7 @@ export default function WriteForm({
           title: title.trim(),
           lounge,
           categoryId,
+          infoWeight,
           content: content.trim(),
           pollOptions:
             categoryId === 4
@@ -109,31 +129,27 @@ export default function WriteForm({
     <main className="mx-auto mt-8 w-full max-w-4xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
       <div className="grid gap-4">
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
-          제목
-          <input
-            className="rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-sm text-zinc-700"
-            placeholder="고민을 짧게 요약해요"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-          />
-        </label>
-        <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           글 카테고리
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {EMOTION_CATEGORIES.map((item) => {
               const active = categoryId === item.id;
+              const meta = CATEGORY_META[item.id] ?? { emoji: "🗂️", hint: "카테고리" };
               return (
                 <button
                   key={item.id}
                   type="button"
-                  className={`rounded-2xl border px-3 py-2 text-left text-xs font-semibold transition ${
+                  className={`rounded-2xl border px-3 py-3 text-left transition ${
                     active
-                      ? "border-amber-300 bg-amber-50 text-amber-900"
-                      : "border-[var(--border-soft)] bg-[var(--paper)] text-[var(--cocoa)]"
+                      ? "border-[var(--accent)]/45 bg-[var(--accent)]/12 text-[var(--ink)]"
+                      : "border-[var(--border-soft)] bg-white text-[var(--cocoa)] hover:bg-[var(--paper)]"
                   }`}
                   onClick={() => setCategoryId(item.id)}
                 >
-                  {item.label}
+                  <p className="text-sm font-semibold">
+                    <span className="mr-1.5">{meta.emoji}</span>
+                    {item.label}
+                  </p>
+                  <p className="mt-1 text-[11px] font-medium text-zinc-500">{meta.hint}</p>
                 </button>
               );
             })}
@@ -164,34 +180,52 @@ export default function WriteForm({
         ) : null}
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           라운지 선택
-          <div className="relative">
-            <select
-              className="h-12 w-full appearance-none rounded-2xl border border-amber-200/70 bg-[linear-gradient(135deg,rgba(255,251,235,0.95),rgba(255,255,255,0.97))] px-4 pr-12 text-sm font-semibold text-zinc-700 shadow-[0_8px_22px_rgba(120,53,15,0.08)] outline-none transition focus:border-amber-300 focus:shadow-[0_0_0_4px_rgba(251,191,36,0.18)]"
-              value={lounge}
-              onChange={(event) => setLounge(event.target.value)}
-              aria-label="라운지 선택"
-            >
-              {LOUNGES.map((label) => (
-                <option key={label} value={label}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-amber-700/80">
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <path
-                  d="M5.25 7.5L10 12.25L14.75 7.5"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
+          <FancySelect
+            value={lounge}
+            options={LOUNGES.map((item) => ({
+              value: item,
+              label: item,
+              emoji: LOUNGE_EMOJI[item],
+            }))}
+            onChange={setLounge}
+            placeholder="라운지를 선택해 주세요"
+          />
+          <p className="px-1 text-[11px] font-normal text-zinc-500">
+            원하시는 라운지에서 자유롭게 공유해 주세요.
+          </p>
+        </label>
+        <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
+          글 성격 게이지
+          <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={infoWeight}
+              onChange={(event) => setInfoWeight(Number(event.target.value))}
+              className="w-full accent-[var(--accent)]"
+              aria-label="글 성격 게이지"
+            />
+            <div className="mt-2 flex items-center justify-between text-[11px] font-medium">
+              <span className="text-zinc-500">자유주제</span>
+              <span className="rounded-full bg-[var(--accent)]/12 px-2.5 py-1 text-[var(--accent)]">
+                정보기반 {infoWeight}%
+              </span>
+            </div>
           </div>
           <p className="px-1 text-[11px] font-normal text-zinc-500">
-            비슷한 상황의 라운지를 고르면 더 잘 공감받을 수 있어요.
+            작성 글이 어느 쪽에 가까운지 대략 표시해 주세요.
           </p>
+        </label>
+        <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
+          제목
+          <input
+            className="rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-4 py-3 text-sm text-zinc-700"
+            placeholder="제목을 짧고 명확하게 적어보세요"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+          />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           내용

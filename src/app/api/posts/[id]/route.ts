@@ -47,7 +47,14 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   const body = (await request.json().catch(() => null)) as
-    | { title?: string; lounge?: string; content?: string; categoryId?: number; mood?: string }
+    | {
+        title?: string;
+        lounge?: string;
+        content?: string;
+        categoryId?: number;
+        infoWeight?: number;
+        mood?: string;
+      }
     | null;
   if (!body) {
     return Response.json({ error: "Invalid JSON body." }, { status: 400 });
@@ -68,6 +75,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return Response.json({ error: "categoryId must be 1..5." }, { status: 400 });
     }
     updates.category_id = body.categoryId;
+  }
+  if (body.infoWeight !== undefined) {
+    if (!Number.isFinite(body.infoWeight) || body.infoWeight < 0 || body.infoWeight > 100) {
+      return Response.json({ error: "infoWeight must be 0..100." }, { status: 400 });
+    }
+    updates.info_weight = Math.round(body.infoWeight);
   }
   if (body.mood !== undefined) {
     if (!VALID_MOODS.has(body.mood)) {

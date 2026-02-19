@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { EMOTION_CATEGORIES } from "@/lib/emotions";
+import FancySelect from "@/app/components/FancySelect";
 
 type FeedFiltersProps = {
   sort: "latest" | "hot";
@@ -22,42 +23,49 @@ export default function FeedFilters({ sort, categoryId }: FeedFiltersProps) {
 
   return (
     <div className="grid gap-3 md:grid-cols-2">
-      <label className="grid gap-1.5 text-xs font-semibold text-[var(--cocoa)]">
-        정렬
-        <select
-          className="rounded-xl border border-[var(--border-soft)] bg-white px-3 py-2 text-sm font-medium text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+      <div className="grid gap-1.5 text-xs font-semibold text-[var(--cocoa)]">
+        <p>정렬</p>
+        <FancySelect
           value={sort}
-          onChange={(event) => {
-            const nextSort = event.target.value === "hot" ? "hot" : "latest";
+          options={[
+            { value: "latest", label: "최신순", emoji: "🕒" },
+            { value: "hot", label: "인기순 (Hot)", emoji: "🔥" },
+          ]}
+          onChange={(nextValue) => {
+            const nextSort = nextValue === "hot" ? "hot" : "latest";
             updateQuery(nextSort, categoryId);
           }}
-        >
-          <option value="latest">최신순</option>
-          <option value="hot">인기순 (Hot)</option>
-        </select>
-      </label>
+        />
+      </div>
 
-      <label className="grid gap-1.5 text-xs font-semibold text-[var(--cocoa)]">
-        카테고리
-        <select
-          className="rounded-xl border border-[var(--border-soft)] bg-white px-3 py-2 text-sm font-medium text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+      <div className="grid gap-1.5 text-xs font-semibold text-[var(--cocoa)]">
+        <p>카테고리</p>
+        <FancySelect
           value={typeof categoryId === "number" ? String(categoryId) : ""}
-          onChange={(event) => {
+          options={[
+            { value: "", label: "전체 카테고리", emoji: "🗂️" },
+            ...EMOTION_CATEGORIES.map((category) => ({
+              value: String(category.id),
+              label: category.label,
+              emoji:
+                category.id === 1
+                  ? "💪"
+                  : category.id === 2
+                    ? "👨‍👩‍👧"
+                    : category.id === 3
+                      ? "📈"
+                      : category.id === 4
+                        ? "🗳️"
+                        : "📝",
+            })),
+          ]}
+          onChange={(nextValue) => {
             const nextCategoryId =
-              event.target.value && Number.isInteger(Number(event.target.value))
-                ? Number(event.target.value)
-                : undefined;
+              nextValue && Number.isInteger(Number(nextValue)) ? Number(nextValue) : undefined;
             updateQuery(sort, nextCategoryId);
           }}
-        >
-          <option value="">전체 카테고리</option>
-          {EMOTION_CATEGORIES.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.label}
-            </option>
-          ))}
-        </select>
-      </label>
+        />
+      </div>
     </div>
   );
 }

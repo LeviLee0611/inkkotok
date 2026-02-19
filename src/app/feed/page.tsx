@@ -6,13 +6,15 @@ import FeedFilters from "@/app/feed/FeedFilters";
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
 
-function toExcerpt(text: string, limit = 120) {
-  if (text.length <= limit) return text;
-  return `${text.slice(0, limit)}...`;
+function infoWeightLabel(weight?: number) {
+  const value = typeof weight === "number" ? Math.min(100, Math.max(0, weight)) : 50;
+  if (value >= 70) return `정보기반 ${value}%`;
+  if (value <= 30) return `자유주제 ${100 - value}%`;
+  return `균형형 ${value}%`;
 }
 
 type FeedPageProps = {
-  searchParams: Promise<{ categoryId?: string; sort?: string }>;
+  searchParams: Promise<{ categoryId?: string; sort?: string; page?: string }>;
 };
 
 export default async function FeedPage({ searchParams }: FeedPageProps) {
@@ -22,25 +24,46 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
       ? Number(query.categoryId)
       : undefined;
   const sort = query.sort === "hot" ? "hot" : "latest";
+  const page =
+    query.page && Number.isInteger(Number(query.page)) && Number(query.page) > 0
+      ? Number(query.page)
+      : 1;
+  const PAGE_SIZE = 12;
+  const offset = (page - 1) * PAGE_SIZE;
 
-  const feed = await listPosts(30, { categoryId: parsedCategoryId, sort }).catch((error) => {
+  const feedResult = await listPosts(PAGE_SIZE + 1, {
+    categoryId: parsedCategoryId,
+    sort,
+    offset,
+  }).catch((error) => {
     console.error("feed listPosts failed", error);
     return [];
   });
+  const hasNextPage = feedResult.length > PAGE_SIZE;
+  const feed = hasNextPage ? feedResult.slice(0, PAGE_SIZE) : feedResult;
+
+  const buildPageHref = (nextPage: number) => {
+    const params = new URLSearchParams();
+    params.set("sort", sort);
+    if (parsedCategoryId) params.set("categoryId", String(parsedCategoryId));
+    if (nextPage > 1) params.set("page", String(nextPage));
+    return `/feed?${params.toString()}`;
+  };
   return (
     <div className="min-h-screen px-6 pb-20 pt-10 md:px-12">
-      <header className="mx-auto flex w-full max-w-6xl flex-col gap-4 rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-[var(--shadow)]">
-        <p className="text-sm font-semibold text-[var(--cocoa)]">
-          정보 · 커뮤니티 피드
+      <header className="relative mx-auto flex w-full max-w-6xl flex-col gap-4 overflow-hidden rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-[var(--shadow)]">
+        <div className="pointer-events-none absolute left-6 top-5 h-1.5 w-14 rounded-full bg-[var(--accent)]/80" />
+        <p className="pt-3 text-sm font-semibold text-[var(--cocoa)]">
+          잉꼬톡 피드
         </p>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="font-display text-3xl font-semibold text-[var(--ink)]">
-              최신 정보와 이야기를 한 번에
+              오늘의 이야기와 생활 정보를 한 번에
             </h1>
             <p className="mt-2 text-sm text-zinc-600">
-              로그인 없이 읽을 수 있어요. 로그인하면 글과 댓글을 바로 남길 수
-              있습니다.
+              잉꼬부부의 경험과 팁이 모이는 공간이에요. 읽기는 누구나 가능하고,
+              로그인하면 글과 댓글로 바로 참여할 수 있어요.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -59,37 +82,32 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
           </div>
         </div>
       </header>
-      <section className="mx-auto mt-8 grid w-full max-w-6xl gap-4 md:grid-cols-[1.2fr_0.8fr]">
-        <div className="grid gap-4">
-          <div className="rounded-3xl border border-[var(--border-soft)] bg-white/90 p-4 shadow-sm">
-            <p className="mb-3 text-xs font-semibold text-[var(--cocoa)]">필터</p>
-            <FeedFilters sort={sort} categoryId={parsedCategoryId} />
-          </div>
+      <section className="mx-auto mt-4 w-full max-w-6xl rounded-3xl border border-[var(--border-soft)] bg-white/90 p-4 shadow-sm">
+        <p className="mb-3 text-xs font-semibold text-[var(--cocoa)]">필터</p>
+        <FeedFilters sort={sort} categoryId={parsedCategoryId} />
+      </section>
+      <section className="mx-auto mt-8 w-full max-w-6xl">
+        <div className="grid gap-3">
           {feed.map((post) => (
             <article
               key={post.id}
-              className="rounded-3xl border border-[var(--border-soft)] bg-white/90 p-5 shadow-sm"
+              className="rounded-2xl border border-[var(--border-soft)] bg-white/90 px-3.5 py-3 shadow-sm"
             >
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <p className="font-semibold text-[var(--cocoa)]">{post.lounge}</p>
-                {typeof post.category_id === "number" ? (
-                  <span className="rounded-full border border-[var(--border-soft)] bg-white px-2 py-0.5 text-zinc-500">
-                    {EMOTION_CATEGORIES.find((item) => item.id === post.category_id)?.label ??
-                      "카테고리"}
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-[11px] font-semibold text-[var(--cocoa)]">{post.lounge}</p>
+                  <span className="rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--accent)]">
+                    {infoWeightLabel(post.info_weight)}
                   </span>
-                ) : null}
-              </div>
-              <a href={`/post/${post.id}`}>
-                <h2 className="mt-3 text-xl font-semibold text-[var(--ink)]">
-                  {post.title}
-                </h2>
-              </a>
-              <p className="mt-2 text-sm leading-6 text-zinc-600">
-                {toExcerpt(post.body)}
-              </p>
-              <div className="mt-4 flex items-center gap-4 text-xs text-zinc-500">
-                <span className="inline-flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-[var(--border-soft)] bg-white">
+                  {typeof post.category_id === "number" ? (
+                    <span className="rounded-full border border-[var(--border-soft)] bg-white px-2 py-0.5 text-zinc-500">
+                      {EMOTION_CATEGORIES.find((item) => item.id === post.category_id)?.label ??
+                        "카테고리"}
+                    </span>
+                  ) : null}
+                </div>
+                <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500">
+                  <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-[var(--border-soft)] bg-white">
                     {post.author?.[0]?.image_url ? (
                       <img
                         src={post.author[0].image_url}
@@ -104,40 +122,44 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
                   </span>
                   작성자 · {post.author?.[0]?.display_name ?? post.id.slice(0, 6)}
                 </span>
-                <span>공감 {post.reactions_count ?? post.like_count ?? 0}</span>
-                <span>댓글 {post.comments_count ?? 0}</span>
+              </div>
+              <div className="mt-1.5 flex items-start justify-between gap-3">
+                <Link href={`/post/${post.id}`} className="min-w-0 flex-1">
+                  <h2 className="line-clamp-1 text-base font-semibold text-[var(--ink)] hover:text-[var(--accent)]">
+                    {post.title}
+                  </h2>
+                </Link>
+                <div className="mt-0.5 flex shrink-0 gap-2.5 text-[11px] text-zinc-500">
+                  <span>공감 {post.reactions_count ?? post.like_count ?? 0}</span>
+                  <span>댓글 {post.comments_count ?? 0}</span>
+                </div>
               </div>
             </article>
           ))}
+          <div className="mt-2 flex items-center justify-between">
+            {page > 1 ? (
+              <Link
+                className="rounded-full border border-[var(--border-soft)] bg-white px-4 py-2 text-xs font-semibold text-[var(--cocoa)] transition hover:-translate-y-0.5 hover:bg-[var(--paper)]"
+                href={buildPageHref(page - 1)}
+              >
+                이전 페이지
+              </Link>
+            ) : (
+              <span />
+            )}
+            <span className="text-xs font-semibold text-zinc-500">페이지 {page}</span>
+            {hasNextPage ? (
+              <Link
+                className="rounded-full border border-[var(--border-soft)] bg-white px-4 py-2 text-xs font-semibold text-[var(--cocoa)] transition hover:-translate-y-0.5 hover:bg-[var(--paper)]"
+                href={buildPageHref(page + 1)}
+              >
+                다음 페이지
+              </Link>
+            ) : (
+              <span />
+            )}
+          </div>
         </div>
-        <aside className="grid gap-4">
-          <div className="rounded-3xl border border-[var(--border-soft)] bg-white/90 p-5 shadow-sm">
-            <p className="text-xs font-semibold text-[var(--cocoa)]">
-              필터/태그
-            </p>
-            <div className="mt-3 grid gap-2 text-sm text-zinc-600">
-              {["운동 루틴", "육아 기록", "경제 공부", "개인 경험담"].map((label) => (
-                <button
-                  key={label}
-                  className="rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)] px-3 py-2 text-left text-xs font-semibold text-[var(--cocoa)]"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="rounded-3xl border border-[var(--border-soft)] bg-white/90 p-5 shadow-sm">
-            <p className="text-xs font-semibold text-[var(--cocoa)]">
-              이용 안내
-            </p>
-            <ul className="mt-3 grid gap-2 text-xs text-zinc-600">
-              <li>읽기는 누구나 가능</li>
-              <li>로그인 후 글/댓글 작성 가능</li>
-              <li>실명, 연락처 공유 금지</li>
-              <li>민감한 정보는 자동 블라인드</li>
-            </ul>
-          </div>
-        </aside>
       </section>
     </div>
   );

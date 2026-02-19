@@ -33,11 +33,12 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const { title, lounge, content, categoryId, mood, pollOptions, pollClosesAt } = body as {
+  const { title, lounge, content, categoryId, infoWeight, mood, pollOptions, pollClosesAt } = body as {
     title?: string;
     lounge?: string;
     content?: string;
     categoryId?: number;
+    infoWeight?: number;
     mood?: string;
     pollOptions?: string[];
     pollClosesAt?: string;
@@ -52,6 +53,12 @@ export async function POST(request: NextRequest) {
 
   if (categoryId !== undefined && (!Number.isInteger(categoryId) || categoryId < 1 || categoryId > 5)) {
     return Response.json({ error: "categoryId must be 1..5." }, { status: 400 });
+  }
+  if (
+    infoWeight !== undefined &&
+    (!Number.isFinite(infoWeight) || infoWeight < 0 || infoWeight > 100)
+  ) {
+    return Response.json({ error: "infoWeight must be 0..100." }, { status: 400 });
   }
   if (mood !== undefined && !VALID_MOODS.has(mood)) {
     return Response.json({ error: "Invalid mood." }, { status: 400 });
@@ -73,6 +80,7 @@ export async function POST(request: NextRequest) {
       lounge,
       body: content,
       categoryId,
+      infoWeight,
       mood: mood as "sad" | "angry" | "anxious" | "mixed" | "hopeful" | "happy" | undefined,
     });
 

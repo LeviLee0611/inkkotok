@@ -48,6 +48,7 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
         initialLounge={post.lounge}
         initialContent={post.body}
         initialCategoryId={post.category_id ?? 2}
+        initialInfoWeight={post.info_weight ?? 50}
       />
     </div>
   );
