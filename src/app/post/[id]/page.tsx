@@ -146,7 +146,9 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
                 <img
                   src={post.media_url}
                   alt="게시글 첨부 GIF"
-                  className="max-h-[460px] w-full object-contain"
+                  className="max-h-[460px] w-full cursor-default object-contain"
+                  draggable={false}
+                  onClick={(event) => event.preventDefault()}
                 />
               </div>
             ) : null}
@@ -160,7 +162,9 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
                     <img
                       src={part.url}
                       alt={part.alt}
-                      className="max-h-[460px] w-full object-contain"
+                      className="max-h-[460px] w-full cursor-default object-contain"
+                      draggable={false}
+                      onClick={(event) => event.preventDefault()}
                     />
                   </div>
                 ) : (

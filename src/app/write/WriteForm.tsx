@@ -35,6 +35,12 @@ type WriteFormProps = {
   initialInfoWeight?: number;
 };
 
+type InlineAttachment = {
+  id: string;
+  url: string;
+  alt: string;
+};
+
 export default function WriteForm({
   mode = "create",
   postId,
@@ -49,12 +55,22 @@ export default function WriteForm({
     initialMediaUrl && !initialContent.includes(initialMediaUrl)
       ? `${initialContent}${initialContent ? "\n\n" : ""}![첨부 이미지](${initialMediaUrl})`
       : initialContent;
+  const seedParts = parsePostBody(seedContent);
+  const seedText = seedParts
+    .filter((part) => part.type === "text")
+    .map((part) => part.value)
+    .join("\n")
+    .trim();
+  const seedAttachments = seedParts
+    .filter((part) => part.type === "image")
+    .map((part, index) => ({ id: `seed-${index}`, url: part.url, alt: part.alt }));
 
   const [title, setTitle] = useState(initialTitle);
   const [lounge, setLounge] = useState(initialLounge);
-  const [content, setContent] = useState(seedContent);
+  const [content, setContent] = useState(seedText);
   const [categoryId, setCategoryId] = useState(initialCategoryId);
   const [infoWeight, setInfoWeight] = useState(initialInfoWeight);
+  const [attachments, setAttachments] = useState<InlineAttachment[]>(seedAttachments);
   const [gifQuery, setGifQuery] = useState("");
   const [gifSearching, setGifSearching] = useState(false);
   const [showGifPanel, setShowGifPanel] = useState(false);
@@ -68,28 +84,8 @@ export default function WriteForm({
 
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const gifInputRef = useRef<HTMLInputElement | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const isEditMode = mode === "edit";
-  const previewParts = parsePostBody(content);
-
-  const insertTextAtCursor = (text: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) {
-      setContent((prev) => `${prev}${text}`);
-      return;
-    }
-
-    const start = textarea.selectionStart ?? content.length;
-    const end = textarea.selectionEnd ?? start;
-    const next = `${content.slice(0, start)}${text}${content.slice(end)}`;
-    setContent(next);
-
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const pos = start + text.length;
-      textarea.setSelectionRange(pos, pos);
-    });
-  };
+  const inlineImages = attachments;
 
   const uploadImageAndInsert = async (file: File) => {
     setMessage(null);
@@ -108,10 +104,14 @@ export default function WriteForm({
         setMessage(data?.error ?? "이미지 업로드에 실패했어요.");
         return;
       }
+      const uploadedUrl = data.url;
 
       const label = file.type === "image/gif" ? "GIF" : "이미지";
-      insertTextAtCursor(`\n![${label}](${data.url})\n`);
-      setMessage(`${label}를 본문에 첨부했어요.`);
+      setAttachments((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), url: uploadedUrl, alt: label },
+      ]);
+      setMessage(`${label}를 첨부했어요.`);
     } catch {
       setMessage("이미지 업로드 중 오류가 발생했어요.");
     } finally {
@@ -153,7 +153,7 @@ export default function WriteForm({
       setMessage("이미지 업로드가 끝난 뒤 저장해 주세요.");
       return;
     }
-    if (!title.trim() || !content.trim()) {
+    if (!title.trim() || (!content.trim() && attachments.length === 0)) {
       setMessage("제목과 내용을 모두 입력해주세요.");
       return;
     }
@@ -169,6 +169,11 @@ export default function WriteForm({
 
     setSaving(true);
     try {
+      const attachmentMarkdown = attachments
+        .map((item) => `![${item.alt}](${item.url})`)
+        .join("\n\n");
+      const finalContent = [content.trim(), attachmentMarkdown].filter(Boolean).join("\n\n");
+
       const res = await authFetch(isEditMode && postId ? `/api/posts/${postId}` : "/api/posts", {
         method: isEditMode ? "PATCH" : "POST",
         headers: { "content-type": "application/json" },
@@ -177,7 +182,7 @@ export default function WriteForm({
           lounge,
           categoryId,
           infoWeight,
-          content: content.trim(),
+          content: finalContent,
           pollOptions:
             categoryId === 4
               ? [pollOption1, pollOption2, pollOption3].map((item) => item.trim()).filter(Boolean)
@@ -411,7 +416,10 @@ export default function WriteForm({
                         type="button"
                         className="overflow-hidden rounded-xl border border-[var(--border-soft)] bg-white transition hover:-translate-y-0.5"
                         onClick={() => {
-                          insertTextAtCursor(`\n![GIF](${item.url})\n`);
+                          setAttachments((prev) => [
+                            ...prev,
+                            { id: crypto.randomUUID(), url: item.url, alt: "GIF" },
+                          ]);
                           setShowGifPanel(false);
                         }}
                         title="이 GIF 본문에 넣기"
@@ -424,8 +432,42 @@ export default function WriteForm({
               </div>
             ) : null}
             <div className="p-3 sm:p-4">
+              {inlineImages.length > 0 ? (
+                <div className="mb-3 rounded-2xl border border-[var(--border-soft)] bg-white/95 p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-[11px] font-semibold text-zinc-500">본문 첨부 이미지</p>
+                    <span className="text-[10px] text-zinc-400">우클릭으로만 저장</span>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {inlineImages.map((part, index) => (
+                      <div
+                        key={`${part.url}-${part.id}-${index}`}
+                        className="overflow-hidden rounded-xl border border-[var(--border-soft)] bg-[var(--paper)]"
+                      >
+                        <img
+                          src={part.url}
+                          alt={part.alt}
+                          className="max-h-44 w-full cursor-default object-contain"
+                          draggable={false}
+                          onClick={(event) => event.preventDefault()}
+                        />
+                        <div className="flex justify-end border-t border-[var(--border-soft)] bg-white px-2 py-1.5">
+                          <button
+                            type="button"
+                            className="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-semibold text-rose-600"
+                            onClick={() =>
+                              setAttachments((prev) => prev.filter((item) => item.id !== part.id))
+                            }
+                          >
+                            제거
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               <textarea
-                ref={textareaRef}
                 className="min-h-[300px] w-full rounded-2xl border border-amber-100/90 bg-white/92 px-4 py-4 text-[15px] leading-7 text-zinc-700 outline-none transition placeholder:text-zinc-400 focus:border-amber-300 focus:bg-white focus:shadow-[0_0_0_4px_rgba(251,191,36,0.16)] sm:min-h-[340px]"
                 placeholder="정보 정리, 경험 공유, 질문 등 원하는 내용을 자유롭게 적어보세요. (이미지 붙여넣기 Ctrl+V 가능)"
                 value={content}
@@ -448,29 +490,6 @@ export default function WriteForm({
                 <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-amber-700/80">
                   저장 시 즉시 반영
                 </span>
-              </div>
-              <div className="mt-4 rounded-2xl border border-[var(--border-soft)] bg-white/95 p-4">
-                <p className="mb-3 text-xs font-semibold text-zinc-500">미리보기 (게시 후 동일)</p>
-                <div className="grid gap-3">
-                  {previewParts.map((part, index) =>
-                    part.type === "image" ? (
-                      <div
-                        key={`${part.url}-${index}`}
-                        className="overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)]"
-                      >
-                        <img
-                          src={part.url}
-                          alt={part.alt}
-                          className="max-h-[460px] w-full object-contain"
-                        />
-                      </div>
-                    ) : (
-                      <p key={`preview-${index}`} className="whitespace-pre-wrap text-[15px] leading-8 text-zinc-700">
-                        {part.value}
-                      </p>
-                    )
-                  )}
-                </div>
               </div>
             </div>
           </div>
