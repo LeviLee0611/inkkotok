@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { authFetch } from "@/lib/auth-fetch";
 import { EMOTION_CATEGORIES } from "@/lib/emotions";
+import { parsePostBody } from "@/lib/post-body";
 import FancySelect from "@/app/components/FancySelect";
 
 const LOUNGES = ["신혼부부", "잉꼬부부", "관계 회복", "육아 루틴", "재정/자산"];
@@ -69,6 +70,7 @@ export default function WriteForm({
   const gifInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const isEditMode = mode === "edit";
+  const previewParts = parsePostBody(content);
 
   const insertTextAtCursor = (text: string) => {
     const textarea = textareaRef.current;
@@ -215,7 +217,7 @@ export default function WriteForm({
   };
 
   return (
-    <main className="mx-auto mt-8 w-full max-w-4xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
+    <main className="mx-auto mt-8 w-full max-w-5xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
       <div className="grid gap-4">
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           글 카테고리
@@ -364,7 +366,7 @@ export default function WriteForm({
                   title="GIF 검색"
                   onClick={() => setShowGifPanel((prev) => !prev)}
                 >
-                  GIF
+                  🔎
                 </button>
                 <button
                   type="button"
@@ -446,6 +448,29 @@ export default function WriteForm({
                 <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-amber-700/80">
                   저장 시 즉시 반영
                 </span>
+              </div>
+              <div className="mt-4 rounded-2xl border border-[var(--border-soft)] bg-white/95 p-4">
+                <p className="mb-3 text-xs font-semibold text-zinc-500">미리보기 (게시 후 동일)</p>
+                <div className="grid gap-3">
+                  {previewParts.map((part, index) =>
+                    part.type === "image" ? (
+                      <div
+                        key={`${part.url}-${index}`}
+                        className="overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)]"
+                      >
+                        <img
+                          src={part.url}
+                          alt={part.alt}
+                          className="max-h-[460px] w-full object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <p key={`preview-${index}`} className="whitespace-pre-wrap text-[15px] leading-8 text-zinc-700">
+                        {part.value}
+                      </p>
+                    )
+                  )}
+                </div>
               </div>
             </div>
           </div>
