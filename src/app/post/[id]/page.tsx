@@ -2,11 +2,13 @@ import { getPostById, getPollByPostId, listComments } from "@/lib/posts";
 import { getUserFromRequest } from "@/lib/auth";
 import { EMOTION_CATEGORIES } from "@/lib/emotions";
 import { parsePostBody } from "@/lib/post-body";
+import { tryParseRichDoc } from "@/lib/rich-content";
 import { headers } from "next/headers";
 import CommentsSection from "./CommentsSection";
 import { PostManageActions } from "./ManageActions";
 import PostLikeButton from "./PostLikeButton";
 import PollCard from "./PollCard";
+import RichBodyRenderer from "./RichBodyRenderer";
 
 export const runtime = "edge";
 
@@ -42,7 +44,8 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
         return [];
       })
     : [];
-  const bodyParts = post ? parsePostBody(post.body) : [];
+  const richDoc = post ? tryParseRichDoc(post.body) : null;
+  const bodyParts = post && !richDoc ? parsePostBody(post.body) : [];
   const showLegacyMedia = Boolean(post?.media_url && !post.body.includes(post.media_url));
 
   if (!post) {
@@ -149,31 +152,43 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
                   className="max-h-[460px] w-full cursor-default object-contain"
                   draggable={false}
                   onClick={(event) => event.preventDefault()}
+                  onMouseDown={(event) => {
+                    if (event.button === 0) event.preventDefault();
+                  }}
                 />
               </div>
             ) : null}
-            <div className="grid gap-4">
-              {bodyParts.map((part, index) =>
-                part.type === "image" ? (
-                  <div
-                    key={`${part.url}-${index}`}
-                    className="overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)]"
-                  >
-                    <img
-                      src={part.url}
-                      alt={part.alt}
-                      className="max-h-[460px] w-full cursor-default object-contain"
-                      draggable={false}
-                      onClick={(event) => event.preventDefault()}
-                    />
-                  </div>
-                ) : (
-                  <p key={`text-${index}`} className="whitespace-pre-wrap text-[15px] leading-8 text-zinc-700">
-                    {part.value}
-                  </p>
-                )
-              )}
-            </div>
+            {richDoc ? (
+              <RichBodyRenderer content={richDoc} />
+            ) : (
+              <div className="grid gap-4">
+                {bodyParts.map((part, index) =>
+                  part.type === "image" ? (
+                    <div
+                      key={`${part.url}-${index}`}
+                      className="overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)]"
+                    >
+                      <div className="mx-auto" style={{ width: `${part.widthPercent}%` }}>
+                        <img
+                          src={part.url}
+                          alt={part.alt}
+                          className="max-h-[460px] w-full cursor-default object-contain"
+                          draggable={false}
+                          onClick={(event) => event.preventDefault()}
+                          onMouseDown={(event) => {
+                            if (event.button === 0) event.preventDefault();
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <p key={`text-${index}`} className="whitespace-pre-wrap text-[15px] leading-8 text-zinc-700">
+                      {part.value}
+                    </p>
+                  )
+                )}
+              </div>
+            )}
           </div>
         </div>
       </main>

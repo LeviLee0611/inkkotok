@@ -1,10 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
 import { authFetch } from "@/lib/auth-fetch";
 import { EMOTION_CATEGORIES } from "@/lib/emotions";
-import { parsePostBody } from "@/lib/post-body";
 import FancySelect from "@/app/components/FancySelect";
+import { richEditorExtensions } from "@/lib/rich-editor-extensions";
+import { legacyBodyToRichDoc, tryParseRichDoc } from "@/lib/rich-content";
 
 const LOUNGES = ["신혼부부", "잉꼬부부", "관계 회복", "육아 루틴", "재정/자산"];
 
@@ -35,6 +37,39 @@ type WriteFormProps = {
   initialInfoWeight?: number;
 };
 
+function hasRichNodes(input: unknown): boolean {
+  if (!input || typeof input !== "object") return false;
+  const node = input as { type?: unknown; text?: unknown; content?: unknown };
+  if (node.type === "image") return true;
+  if (typeof node.text === "string" && node.text.trim().length > 0) return true;
+  if (Array.isArray(node.content)) return node.content.some((child) => hasRichNodes(child));
+  return false;
+}
+
+function ToolbarButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
+        active
+          ? "border-[var(--accent)]/40 bg-[var(--accent)]/12 text-[var(--accent)]"
+          : "border-[var(--border-soft)] bg-white text-[var(--cocoa)] hover:-translate-y-0.5"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
 export default function WriteForm({
   mode = "create",
   postId,
@@ -50,9 +85,13 @@ export default function WriteForm({
       ? `${initialContent}${initialContent ? "\n\n" : ""}![첨부 이미지](${initialMediaUrl})`
       : initialContent;
 
+  const initialDoc = useMemo(() => {
+    const rich = tryParseRichDoc(seedContent);
+    return rich ?? legacyBodyToRichDoc(seedContent);
+  }, [seedContent]);
+
   const [title, setTitle] = useState(initialTitle);
   const [lounge, setLounge] = useState(initialLounge);
-  const [content, setContent] = useState(seedContent);
   const [categoryId, setCategoryId] = useState(initialCategoryId);
   const [infoWeight, setInfoWeight] = useState(initialInfoWeight);
   const [gifQuery, setGifQuery] = useState("");
@@ -68,30 +107,21 @@ export default function WriteForm({
 
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const gifInputRef = useRef<HTMLInputElement | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const isEditMode = mode === "edit";
-  const previewParts = parsePostBody(content);
 
-  const insertTextAtCursor = (text: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) {
-      setContent((prev) => `${prev}${text}`);
-      return;
-    }
+  const editor = useEditor({
+    extensions: richEditorExtensions,
+    content: initialDoc,
+    editorProps: {
+      attributes: {
+        class:
+          "ProseMirror min-h-[320px] rounded-2xl border border-amber-100/90 bg-white/92 px-4 py-4 text-[15px] leading-7 text-zinc-700 outline-none focus:border-amber-300",
+      },
+    },
+    immediatelyRender: false,
+  });
 
-    const start = textarea.selectionStart ?? content.length;
-    const end = textarea.selectionEnd ?? start;
-    const next = `${content.slice(0, start)}${text}${content.slice(end)}`;
-    setContent(next);
-
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const pos = start + text.length;
-      textarea.setSelectionRange(pos, pos);
-    });
-  };
-
-  const uploadImageAndInsert = async (file: File) => {
+  const uploadAndInsertImage = async (file: File) => {
     setMessage(null);
     setMediaUploading(true);
     try {
@@ -109,9 +139,8 @@ export default function WriteForm({
         return;
       }
 
-      const label = file.type === "image/gif" ? "GIF" : "이미지";
-      insertTextAtCursor(`\n![${label}](${data.url})\n`);
-      setMessage(`${label}를 본문에 첨부했어요.`);
+      editor?.chain().focus().setImage({ src: data.url, alt: file.type === "image/gif" ? "GIF" : "이미지" }).run();
+      setMessage("이미지를 본문에 넣었어요.");
     } catch {
       setMessage("이미지 업로드 중 오류가 발생했어요.");
     } finally {
@@ -125,7 +154,6 @@ export default function WriteForm({
       setGifResults([]);
       return;
     }
-
     setGifSearching(true);
     try {
       const response = await fetch(`/api/media/gif/search?q=${encodeURIComponent(keyword)}&limit=12`, {
@@ -153,8 +181,17 @@ export default function WriteForm({
       setMessage("이미지 업로드가 끝난 뒤 저장해 주세요.");
       return;
     }
-    if (!title.trim() || !content.trim()) {
-      setMessage("제목과 내용을 모두 입력해주세요.");
+    if (!title.trim()) {
+      setMessage("제목을 입력해주세요.");
+      return;
+    }
+    if (!editor) {
+      setMessage("에디터가 아직 준비되지 않았어요. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+    const doc = editor.getJSON();
+    if (!hasRichNodes(doc)) {
+      setMessage("내용을 입력해주세요.");
       return;
     }
     if (categoryId === 4) {
@@ -177,7 +214,7 @@ export default function WriteForm({
           lounge,
           categoryId,
           infoWeight,
-          content: content.trim(),
+          content: JSON.stringify(doc),
           pollOptions:
             categoryId === 4
               ? [pollOption1, pollOption2, pollOption3].map((item) => item.trim()).filter(Boolean)
@@ -203,7 +240,6 @@ export default function WriteForm({
         window.location.assign(`/post/${postId}`);
         return;
       }
-
       if (!isEditMode && data.id) {
         window.location.assign(`/post/${data.id}`);
       } else {
@@ -215,6 +251,12 @@ export default function WriteForm({
       setSaving(false);
     }
   };
+
+  const selectedImageWidth = (() => {
+    const width = editor?.getAttributes("image")?.width;
+    if (typeof width === "string" && width.endsWith("%")) return Number(width.replace("%", ""));
+    return 100;
+  })();
 
   return (
     <main className="mx-auto mt-8 w-full max-w-5xl rounded-[28px] border border-[var(--border-soft)] bg-white/90 p-6 shadow-sm">
@@ -246,6 +288,7 @@ export default function WriteForm({
             })}
           </div>
         </label>
+
         {categoryId === 4 ? (
           <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
             투표 항목
@@ -269,6 +312,7 @@ export default function WriteForm({
             />
           </label>
         ) : null}
+
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           라운지 선택
           <FancySelect
@@ -281,10 +325,8 @@ export default function WriteForm({
             onChange={setLounge}
             placeholder="라운지를 선택해 주세요"
           />
-          <p className="px-1 text-[11px] font-normal text-zinc-500">
-            원하시는 라운지에서 자유롭게 공유해 주세요.
-          </p>
         </label>
+
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           글 성격 게이지
           <div className="rounded-2xl border border-[var(--border-soft)] bg-white px-4 py-3">
@@ -298,17 +340,9 @@ export default function WriteForm({
               className="w-full accent-[var(--accent)]"
               aria-label="글 성격 게이지"
             />
-            <div className="mt-2 flex items-center justify-between text-[11px] font-medium">
-              <span className="text-zinc-500">자유주제</span>
-              <span className="rounded-full bg-[var(--accent)]/12 px-2.5 py-1 text-[var(--accent)]">
-                정보기반 {infoWeight}%
-              </span>
-            </div>
           </div>
-          <p className="px-1 text-[11px] font-normal text-zinc-500">
-            작성 글이 어느 쪽에 가까운지 대략 표시해 주세요.
-          </p>
         </label>
+
         <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
           제목
           <input
@@ -318,67 +352,84 @@ export default function WriteForm({
             onChange={(event) => setTitle(event.target.value)}
           />
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
-          내용
+
+        <div className="grid gap-2 text-sm font-semibold text-[var(--ink)]">
+          <p>내용</p>
           <div className="overflow-hidden rounded-3xl border border-amber-100/80 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98)_0%,rgba(254,252,245,0.97)_42%,rgba(248,244,235,0.95)_100%)] shadow-[0_18px_45px_rgba(120,53,15,0.09)]">
-            <div className="flex items-center justify-between border-b border-amber-100/80 bg-[linear-gradient(90deg,rgba(255,255,255,0.82),rgba(255,251,235,0.78))] px-4 py-2 backdrop-blur">
-              <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-rose-400/80" />
-                <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
-                <span className="ml-2 text-[11px] font-medium text-zinc-500">Private Note</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <input
-                  ref={gifInputRef}
-                  type="file"
-                  accept="image/gif"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void uploadImageAndInsert(file);
-                    event.currentTarget.value = "";
+            <div className="border-b border-amber-100/80 bg-white/85 px-3 py-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <ToolbarButton label="B" active={editor?.isActive("bold")} onClick={() => editor?.chain().focus().toggleBold().run()} />
+                <ToolbarButton label="I" active={editor?.isActive("italic")} onClick={() => editor?.chain().focus().toggleItalic().run()} />
+                <ToolbarButton label="U" active={editor?.isActive("underline")} onClick={() => editor?.chain().focus().toggleUnderline().run()} />
+                <ToolbarButton label="H2" active={editor?.isActive("heading", { level: 2 })} onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()} />
+                <ToolbarButton label="목록" active={editor?.isActive("bulletList")} onClick={() => editor?.chain().focus().toggleBulletList().run()} />
+                <ToolbarButton label="정렬" active={editor?.isActive({ textAlign: "center" })} onClick={() => editor?.chain().focus().setTextAlign("center").run()} />
+                <ToolbarButton
+                  label="링크"
+                  active={editor?.isActive("link")}
+                  onClick={() => {
+                    const url = window.prompt("링크를 입력해 주세요", "https://");
+                    if (!url) return;
+                    editor?.chain().focus().setLink({ href: url }).run();
                   }}
                 />
-                <input
-                  ref={imageInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void uploadImageAndInsert(file);
-                    event.currentTarget.value = "";
-                  }}
-                />
+                <label className="inline-flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-white px-2 py-1 text-[11px]">
+                  색상
+                  <input
+                    type="color"
+                    defaultValue="#404040"
+                    onChange={(event) => editor?.chain().focus().setColor(event.target.value).run()}
+                    className="h-5 w-5 cursor-pointer border-0 bg-transparent p-0"
+                  />
+                </label>
                 <button
                   type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white text-[11px] font-bold tracking-tight transition hover:-translate-y-0.5"
-                  title="GIF 파일 첨부"
+                  className="rounded-lg border border-[var(--border-soft)] bg-white px-2 py-1 text-xs font-semibold text-[var(--cocoa)]"
                   onClick={() => gifInputRef.current?.click()}
                   disabled={mediaUploading}
                 >
-                  GIF
+                  GIF 업로드
                 </button>
                 <button
                   type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white text-base transition hover:-translate-y-0.5"
-                  title="GIF 검색"
-                  onClick={() => setShowGifPanel((prev) => !prev)}
-                >
-                  🔎
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-soft)] bg-white text-base transition hover:-translate-y-0.5"
-                  title="사진 첨부"
+                  className="rounded-lg border border-[var(--border-soft)] bg-white px-2 py-1 text-xs font-semibold text-[var(--cocoa)]"
                   onClick={() => imageInputRef.current?.click()}
                   disabled={mediaUploading}
                 >
-                  🖼️
+                  사진 업로드
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg border border-[var(--border-soft)] bg-white px-2 py-1 text-xs font-semibold text-[var(--cocoa)]"
+                  onClick={() => setShowGifPanel((prev) => !prev)}
+                >
+                  GIF 검색
                 </button>
               </div>
+              <input
+                ref={gifInputRef}
+                type="file"
+                accept="image/gif"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void uploadAndInsertImage(file);
+                  event.currentTarget.value = "";
+                }}
+              />
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void uploadAndInsertImage(file);
+                  event.currentTarget.value = "";
+                }}
+              />
             </div>
+
             {showGifPanel ? (
               <div className="border-b border-amber-100/80 bg-white/80 px-4 py-3">
                 <div className="flex items-center gap-2">
@@ -396,7 +447,7 @@ export default function WriteForm({
                   />
                   <button
                     type="button"
-                    className="shrink-0 rounded-xl border border-[var(--border-soft)] bg-white px-3 py-2 text-xs font-semibold text-[var(--cocoa)] transition hover:-translate-y-0.5"
+                    className="shrink-0 rounded-xl border border-[var(--border-soft)] bg-white px-3 py-2 text-xs font-semibold text-[var(--cocoa)]"
                     onClick={() => void onSearchGif()}
                     disabled={gifSearching}
                   >
@@ -411,7 +462,7 @@ export default function WriteForm({
                         type="button"
                         className="overflow-hidden rounded-xl border border-[var(--border-soft)] bg-white transition hover:-translate-y-0.5"
                         onClick={() => {
-                          insertTextAtCursor(`\n![GIF](${item.url})\n`);
+                          editor?.chain().focus().setImage({ src: item.url, alt: "GIF" }).run();
                           setShowGifPanel(false);
                         }}
                         title="이 GIF 본문에 넣기"
@@ -423,59 +474,30 @@ export default function WriteForm({
                 ) : null}
               </div>
             ) : null}
-            <div className="p-3 sm:p-4">
-              <textarea
-                ref={textareaRef}
-                className="min-h-[300px] w-full rounded-2xl border border-amber-100/90 bg-white/92 px-4 py-4 text-[15px] leading-7 text-zinc-700 outline-none transition placeholder:text-zinc-400 focus:border-amber-300 focus:bg-white focus:shadow-[0_0_0_4px_rgba(251,191,36,0.16)] sm:min-h-[340px]"
-                placeholder="정보 정리, 경험 공유, 질문 등 원하는 내용을 자유롭게 적어보세요. (이미지 붙여넣기 Ctrl+V 가능)"
-                value={content}
-                onChange={(event) => setContent(event.target.value)}
-                onPaste={(event) => {
-                  const items = Array.from(event.clipboardData?.items ?? []);
-                  const imageItem = items.find((item) => item.type.startsWith("image/"));
-                  if (!imageItem) return;
 
-                  const file = imageItem.getAsFile();
-                  if (!file) return;
-                  event.preventDefault();
-                  void uploadImageAndInsert(file);
-                }}
-              />
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-1">
-                <p className="text-[11px] font-normal text-zinc-500">
-                  Ctrl+V로 캡처 이미지를 붙여넣으면 본문에 바로 첨부돼요. (동영상은 아직 지원하지 않아요)
-                </p>
-                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-amber-700/80">
-                  저장 시 즉시 반영
-                </span>
-              </div>
-              <div className="mt-4 rounded-2xl border border-[var(--border-soft)] bg-white/95 p-4">
-                <p className="mb-3 text-xs font-semibold text-zinc-500">미리보기 (게시 후 동일)</p>
-                <div className="grid gap-3">
-                  {previewParts.map((part, index) =>
-                    part.type === "image" ? (
-                      <div
-                        key={`${part.url}-${index}`}
-                        className="overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)]"
-                      >
-                        <img
-                          src={part.url}
-                          alt={part.alt}
-                          className="max-h-[460px] w-full object-contain"
-                        />
-                      </div>
-                    ) : (
-                      <p key={`preview-${index}`} className="whitespace-pre-wrap text-[15px] leading-8 text-zinc-700">
-                        {part.value}
-                      </p>
-                    )
-                  )}
-                </div>
+            <div className="p-3 sm:p-4">
+              <EditorContent editor={editor} />
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-[var(--border-soft)] bg-white/80 px-3 py-2 text-xs text-zinc-600">
+                <span>선택된 이미지 크기</span>
+                <input
+                  type="range"
+                  min={30}
+                  max={100}
+                  step={5}
+                  value={selectedImageWidth}
+                  onChange={(event) =>
+                    editor?.chain().focus().updateAttributes("image", { width: `${event.target.value}%` }).run()
+                  }
+                  disabled={!editor?.isActive("image")}
+                  className="w-44 accent-[var(--accent)] disabled:opacity-40"
+                />
+                <span>{selectedImageWidth}%</span>
               </div>
             </div>
           </div>
-        </label>
+        </div>
       </div>
+
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <button
           className="rounded-full bg-[var(--ink)] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
@@ -489,9 +511,7 @@ export default function WriteForm({
           <p className="text-xs text-zinc-500">{message}</p>
         ) : (
           <p className="text-xs text-zinc-500">
-            {isEditMode
-              ? "수정한 내용은 즉시 게시글에 반영됩니다."
-              : "작성한 글은 바로 피드에 반영됩니다."}
+            {isEditMode ? "수정한 내용은 즉시 반영됩니다." : "작성한 글은 바로 피드에 반영됩니다."}
           </p>
         )}
       </div>
