@@ -33,13 +33,14 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const { title, lounge, content, categoryId, infoWeight, mood, pollOptions, pollClosesAt } = body as {
+  const { title, lounge, content, categoryId, infoWeight, mood, gifUrl, pollOptions, pollClosesAt } = body as {
     title?: string;
     lounge?: string;
     content?: string;
     categoryId?: number;
     infoWeight?: number;
     mood?: string;
+    gifUrl?: string | null;
     pollOptions?: string[];
     pollClosesAt?: string;
   };
@@ -63,6 +64,15 @@ export async function POST(request: NextRequest) {
   if (mood !== undefined && !VALID_MOODS.has(mood)) {
     return Response.json({ error: "Invalid mood." }, { status: 400 });
   }
+  if (gifUrl !== undefined && gifUrl !== null && typeof gifUrl !== "string") {
+    return Response.json({ error: "gifUrl must be a string." }, { status: 400 });
+  }
+  if (typeof gifUrl === "string" && gifUrl.trim().length > 0) {
+    const trimmedGifUrl = gifUrl.trim();
+    if (!/^https?:\/\//i.test(trimmedGifUrl)) {
+      return Response.json({ error: "gifUrl must be http(s) url." }, { status: 400 });
+    }
+  }
   if (categoryId === 4) {
     if (!Array.isArray(pollOptions)) {
       return Response.json({ error: "pollOptions are required for poll category." }, { status: 400 });
@@ -81,6 +91,7 @@ export async function POST(request: NextRequest) {
       body: content,
       categoryId,
       infoWeight,
+      mediaUrl: typeof gifUrl === "string" && gifUrl.trim() ? gifUrl.trim() : undefined,
       mood: mood as "sad" | "angry" | "anxious" | "mixed" | "hopeful" | "happy" | undefined,
     });
 

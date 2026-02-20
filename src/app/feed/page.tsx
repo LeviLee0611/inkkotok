@@ -125,9 +125,16 @@ export default async function FeedPage({ searchParams }: FeedPageProps) {
               </div>
               <div className="mt-1.5 flex items-start justify-between gap-3">
                 <Link href={`/post/${post.id}`} className="min-w-0 flex-1">
-                  <h2 className="line-clamp-1 text-base font-semibold text-[var(--ink)] hover:text-[var(--accent)]">
-                    {post.title}
-                  </h2>
+                  <div className="flex min-w-0 items-center gap-2">
+                    {post.media_url ? (
+                      <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                        GIF
+                      </span>
+                    ) : null}
+                    <h2 className="line-clamp-1 text-base font-semibold text-[var(--ink)] hover:text-[var(--accent)]">
+                      {post.title}
+                    </h2>
+                  </div>
                 </Link>
                 <div className="mt-0.5 flex shrink-0 gap-2.5 text-[11px] text-zinc-500">
                   <span>공감 {post.reactions_count ?? post.like_count ?? 0}</span>

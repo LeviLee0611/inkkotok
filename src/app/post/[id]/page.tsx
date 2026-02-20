@@ -13,11 +13,46 @@ type PostDetailProps = {
   params: Promise<{ id: string }>;
 };
 
+type BodyPart =
+  | { type: "text"; value: string }
+  | { type: "image"; alt: string; url: string };
+
 function infoWeightLabel(weight?: number) {
   const value = typeof weight === "number" ? Math.min(100, Math.max(0, weight)) : 50;
   if (value >= 70) return `정보기반 ${value}%`;
   if (value <= 30) return `자유주제 ${100 - value}%`;
   return `균형형 ${value}%`;
+}
+
+function parseBodyParts(body: string): BodyPart[] {
+  const parts: BodyPart[] = [];
+  const pattern = /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g;
+  let cursor = 0;
+
+  for (const match of body.matchAll(pattern)) {
+    const matchedText = match[0];
+    const alt = match[1] || "첨부 이미지";
+    const url = match[2];
+    const start = match.index ?? 0;
+
+    if (start > cursor) {
+      const text = body.slice(cursor, start);
+      if (text.trim()) {
+        parts.push({ type: "text", value: text });
+      }
+    }
+    parts.push({ type: "image", alt, url });
+    cursor = start + matchedText.length;
+  }
+
+  if (cursor < body.length) {
+    const text = body.slice(cursor);
+    if (text.trim()) {
+      parts.push({ type: "text", value: text });
+    }
+  }
+
+  return parts.length ? parts : [{ type: "text", value: body }];
 }
 
 export default async function PostDetailPage({ params }: PostDetailProps) {
@@ -41,6 +76,8 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
         return [];
       })
     : [];
+  const bodyParts = post ? parseBodyParts(post.body) : [];
+  const showLegacyMedia = Boolean(post?.media_url && !post.body.includes(post.media_url));
 
   if (!post) {
     return (
@@ -138,9 +175,35 @@ export default async function PostDetailPage({ params }: PostDetailProps) {
         </div>
         <div className="p-4 sm:p-5">
           <div className="rounded-2xl border border-amber-100/90 bg-white/92 px-4 py-5 sm:px-5">
-            <p className="whitespace-pre-wrap text-[15px] leading-8 text-zinc-700">
-              {post.body}
-            </p>
+            {showLegacyMedia ? (
+              <div className="mb-4 overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)]">
+                <img
+                  src={post.media_url}
+                  alt="게시글 첨부 GIF"
+                  className="max-h-[460px] w-full object-contain"
+                />
+              </div>
+            ) : null}
+            <div className="grid gap-4">
+              {bodyParts.map((part, index) =>
+                part.type === "image" ? (
+                  <div
+                    key={`${part.url}-${index}`}
+                    className="overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-[var(--paper)]"
+                  >
+                    <img
+                      src={part.url}
+                      alt={part.alt}
+                      className="max-h-[460px] w-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <p key={`text-${index}`} className="whitespace-pre-wrap text-[15px] leading-8 text-zinc-700">
+                    {part.value}
+                  </p>
+                )
+              )}
+            </div>
           </div>
         </div>
       </main>

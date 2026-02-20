@@ -47,6 +47,7 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
         initialTitle={post.title}
         initialLounge={post.lounge}
         initialContent={post.body}
+        initialMediaUrl={post.media_url ?? ""}
         initialCategoryId={post.category_id ?? 2}
         initialInfoWeight={post.info_weight ?? 50}
       />

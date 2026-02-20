@@ -7,6 +7,7 @@ export type PostRecord = {
   author?: { display_name: string | null; image_url: string | null }[] | null;
   title: string;
   body: string;
+  media_url?: string | null;
   lounge: string;
   category_id?: number;
   info_weight?: number;
@@ -91,6 +92,7 @@ function isMissingPostsSchemaColumnError(error: unknown) {
     msg.includes("category_id") ||
     msg.includes("info_weight") ||
     msg.includes("mood") ||
+    msg.includes("media_url") ||
     msg.includes("comments_count") ||
     msg.includes("reactions_count") ||
     msg.includes("votes_count") ||
@@ -277,7 +279,7 @@ export async function listPosts(
   let query = supabase
     .from("posts")
     .select(
-      "id, author_id, title, lounge, body, category_id, info_weight, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
+      "id, author_id, title, lounge, body, media_url, category_id, info_weight, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
     )
     .limit(limit);
 
@@ -335,7 +337,7 @@ export async function getPostById(id: string) {
   let { data, error } = await supabase
     .from("posts")
     .select(
-      "id, title, lounge, body, author_id, category_id, info_weight, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
+      "id, title, lounge, body, media_url, author_id, category_id, info_weight, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
     )
     .eq("id", id)
     .maybeSingle();
@@ -350,7 +352,7 @@ export async function getPostById(id: string) {
     ({ data, error } = await supabase
       .from("posts")
       .select(
-        "id, title, lounge, body, author_id, category_id, info_weight, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
+        "id, title, lounge, body, media_url, author_id, category_id, info_weight, mood, comments_count, reactions_count, votes_count, hot_score, created_at"
       )
       .eq("id", id)
       .maybeSingle());
@@ -449,6 +451,7 @@ export async function createPost(input: {
   title: string;
   body: string;
   lounge: string;
+  mediaUrl?: string;
   categoryId?: number;
   infoWeight?: number;
   mood?: "sad" | "angry" | "anxious" | "mixed" | "hopeful" | "happy";
@@ -468,6 +471,9 @@ export async function createPost(input: {
   }
   if (input.mood) {
     payload.mood = input.mood;
+  }
+  if (input.mediaUrl) {
+    payload.media_url = input.mediaUrl;
   }
   const { data, error } = await supabase
     .from("posts")

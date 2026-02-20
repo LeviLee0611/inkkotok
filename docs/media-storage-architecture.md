@@ -15,6 +15,9 @@
 - 프로필 이미지 업로드 API:
   - `src/app/api/profile/avatar/route.ts`
   - 직접 Supabase SDK 호출 대신 `uploadPublicImageFile(...)` 사용
+- 게시글 GIF 업로드 API:
+  - `src/app/api/media/gif/route.ts`
+  - 업로드 후 URL을 `posts.media_url`에 저장
 
 ## Migration rule
 1. 새로운 저장소용 adapter 파일 추가
@@ -24,3 +27,5 @@
 
 ## Env
 - `MEDIA_STORAGE_PROVIDER=supabase` (기본)
+- `TENOR_API_KEY=...` (선택, GIF 검색 기능 사용 시 필요)
+- `TENOR_CLIENT_KEY=inkkotok-web` (선택, Tenor 권장 client key)

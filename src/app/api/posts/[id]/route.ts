@@ -54,6 +54,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         categoryId?: number;
         infoWeight?: number;
         mood?: string;
+        gifUrl?: string | null;
       }
     | null;
   if (!body) {
@@ -88,6 +89,15 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
     updates.mood = body.mood;
   }
+  if (body.gifUrl !== undefined) {
+    if (body.gifUrl === null || body.gifUrl === "") {
+      updates.media_url = "";
+    } else if (typeof body.gifUrl === "string" && /^https?:\/\//i.test(body.gifUrl.trim())) {
+      updates.media_url = body.gifUrl.trim();
+    } else {
+      return Response.json({ error: "gifUrl must be a valid http(s) url." }, { status: 400 });
+    }
+  }
 
   if (Object.keys(updates).length === 0) {
     return Response.json(
@@ -96,9 +106,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     );
   }
 
-  const updatePayloads: Array<Record<string, string | number>> = [
-    { ...updates, updated_at: new Date().toISOString() },
-    updates,
+  const updatesWithNull =
+    updates.media_url === "" ? { ...updates, media_url: null } : updates;
+  const updatePayloads: Array<Record<string, string | number | null>> = [
+    { ...updatesWithNull, updated_at: new Date().toISOString() },
+    updatesWithNull,
   ];
 
   let updateError: { message?: string } | null = null;
