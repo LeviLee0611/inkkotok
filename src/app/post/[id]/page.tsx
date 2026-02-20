@@ -26,8 +26,12 @@ function infoWeightLabel(weight?: number) {
 
 function parseBodyParts(body: string): BodyPart[] {
   const parts: BodyPart[] = [];
-  const pattern = /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g;
+  const pattern = /!?\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g;
   let cursor = 0;
+
+  const isRenderableImageUrl = (url: string) =>
+    /\.(png|jpe?g|gif|webp|avif)(\?|#|$)/i.test(url) ||
+    url.includes("/storage/v1/object/public/post-media/");
 
   for (const match of body.matchAll(pattern)) {
     const matchedText = match[0];
@@ -41,7 +45,11 @@ function parseBodyParts(body: string): BodyPart[] {
         parts.push({ type: "text", value: text });
       }
     }
-    parts.push({ type: "image", alt, url });
+    if (isRenderableImageUrl(url)) {
+      parts.push({ type: "image", alt, url });
+    } else {
+      parts.push({ type: "text", value: matchedText });
+    }
     cursor = start + matchedText.length;
   }
 
